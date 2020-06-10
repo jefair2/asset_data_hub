@@ -1,0 +1,25 @@
+<form>
+  <label>Custom Reports</label>
+  <fieldset submitButton="true">
+    <input type="dropdown" token="field1">
+      <label>Report Dropdown</label>
+      <fieldForLabel>reports</fieldForLabel>
+      <fieldForValue>reports</fieldForValue>
+      <search>
+        <query>| rest splunk_server=local /servicesNS/-/-/saved/searches | search eai:acl.app=jsp_assets | search title= "custom**" | rex field=title "^custom_reports\-(?&lt;reports&gt;.*)" | table reports</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Custom Reports Results</title>
+      <table>
+        <title>Report = $field1$</title>
+        <search ref="custom_reports-$field1$"></search>
+        <option name="count">20</option>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,137 @@
+<form theme="dark">
+  <label>Privileged Accounts Info</label>
+  <description>Please select Domain Drilldown for all Tables</description>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="multiselect" token="field1">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>user_domain="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>user_domain</fieldForLabel>
+      <fieldForValue>user_domain</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | stats count by user_domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Privileged Accounts by Domain Status</title>
+      <chart>
+        <title>Drilldown to see Acounts</title>
+        <search>
+          <query>| inputlookup user_list_main.csv  | where user_admin=1 and user_service=0 | search $field1$  | chart count count over user_domain  by user_disabled  | rename "count: 0" as "Enabled", "count: 1" as "Disabled", user_domain as Domain | replace ext with External, rsrc with Resource, usr with USR in Domain | eval Domain=upper(Domain)</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.fieldColors">{"Enabled":0x2fac02, "Disabled":0xE30C0C}</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="height">500</option>
+        <drilldown>
+          <set token="field3">$row.Domain$</set>
+          <set token="field2">$click.name2$</set>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <title>Privileged Account Drilldown</title>
+      <table>
+        <title>$field2$ accounts in $field3$ Domain</title>
+        <search>
+          <query>| inputlookup user_list_main.csv | eval Domain=UPPER(user_domain) | replace "0" with "Enabled", "1" with "Disabled" in user_disabled  |where user_admin=1 and user_service=0 | search Domain=$field3$ AND user_disabled="$field2$" | table user_firstname user_lastname user_upn user_cac user_dn1 user_dept user_lastlogon1 | rename user_firstname as Firstname, user_lastname as LastName, user_upn as UPN, user_cac as "CAC Enabled", user_dn1 as "OU", user_dept as "Dept", user_lastlogon1 as "Last Logon" | replace "1" with "Yes", "0" with "NO" in "CAC Enabled"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Privileged Accounts logged in within the past 30 days</title>
+      <single>
+        <search>
+          <query>| inputlookup user_list_main.csv | where user_service=0 | search $field1$  |  eval user_lastlogon1=strptime(user_lastlogon1, "%F") | where user_lastlogon1 &gt;= now()-(60*60*24*30)  | eval user_lastlogon1=strftime(user_lastlogon1, "%F") | stats count by user_admin | where user_admin=1 | fields count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Privileged Account logged in within the past 30 days</title>
+      <table>
+        <search>
+          <query>| inputlookup user_list_main.csv | where user_service=0 | search $field1$  |  eval user_lastlogon1=strptime(user_lastlogon1, "%F") | where user_lastlogon1 &gt;= now()-(60*60*24*30)  | eval user_lastlogon1=strftime(user_lastlogon1, "%F") | where user_admin=1 | table user_domain user_fullname  user_lastlogon1 | sort - user_lastlogon1 |  rename user_lastlogon1 as "Last Logged In", user_fullname as "Fullname", user_domain as "Domain"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Non-CAC Enforced Privileged Accounts Logged in within 30 days.</title>
+      <single>
+        <title>Count</title>
+        <search>
+          <query>| inputlookup user_list_main.csv | where user_service=0 AND user_cac=0| search $field1$  |  eval user_lastlogon1=strptime(user_lastlogon1, "%F") | where user_lastlogon1 &gt;= now()-(60*60*24*30)  | eval user_lastlogon1=strftime(user_lastlogon1, "%F") | stats count by user_admin | where user_admin=1 | table count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Non-CAC Enforced Privileged Accounts Logged in within 30 days.</title>
+      <table>
+        <title>Table</title>
+        <search>
+          <query>| inputlookup user_list_main.csv | where user_service=0 AND user_cac=0| search $field1$  |  eval user_lastlogon1=strptime(user_lastlogon1, "%F") | where user_lastlogon1 &gt;= now()-(60*60*24*30)  | eval user_lastlogon1=strftime(user_lastlogon1, "%F")  | where user_admin=1 |table user_domain user_fullname  user_lastlogon1 | sort - user_lastlogon1 |  rename user_lastlogon1 as "Last Logged In", user_fullname as "Fullname", user_domain as "Domain"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Privileged Accounts Not logged in past 30 days and Account is Enabled</title>
+      <single>
+        <search>
+          <query>| inputlookup user_list_main.csv | where user_service=0 | search $field1$  |  eval user_lastlogon1=strptime(user_lastlogon1, "%F") | where user_lastlogon1 &lt;= now()-(60*60*24*30)  | eval user_lastlogon1=strftime(user_lastlogon1, "%F") |  where user_admin=1 AND user_disabled=0 | stats count by user_admin | fields count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Privileged Accounts Not logged in past 30 days and Account is Enabled</title>
+      <table>
+        <search>
+          <query>| inputlookup user_list_main.csv | where user_service=0 |  search $field1$  | eval user_lastlogon1=strptime(user_lastlogon1, "%F") | where user_lastlogon1 &lt;= now()-(60*60*24*30)  | eval user_lastlogon1=strftime(user_lastlogon1, "%F") | where user_admin=1 AND user_disabled=0 | table user_domain user_fullname  user_lastlogon1 | sort - user_lastlogon1 |  rename user_lastlogon1 as "Last Logged In", user_fullname as "Fullname", user_domain as "Domain"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

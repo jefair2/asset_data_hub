@@ -1,0 +1,327 @@
+<dashboard>
+  <label>Backup</label>
+  <row>
+    <panel>
+      <single>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status | where LIKE(domain, "%osd.mil%")  | where NOT like(tsm_log, "%Linux%") | eval day=strftime(day, "%F") | stats count by domain | addcoltotals | sort 0 - count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Totals By Domain</title>
+      <table>
+        <title>No DB's OR DC's</title>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status |  where NOT LIKE(host, "%DC1%")| eval day=strftime(day, "%F") | stats count by domain | addcoltotals | sort 0  - count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Totals for OSD domains</title>
+      <table>
+        <title>No DBS, DCS Or Linux</title>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status | where LIKE(domain, "%osd.mil%")  |  where NOT LIKE(host, "%DC1%")| where NOT like(tsm_log, "%Linux%") | eval day=strftime(day, "%F") | stats count by domain | addcoltotals | sort 0 - count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <single>
+        <title>Total Numbers to be Looked at</title>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status| sort 0 day | where LIKE(domain, "%osd.mil%") | where NOT LIKE(tsm_log, "%does-not-exist%") | where NOT Like(tsm_log, "%Does-not%") | where NOT like(tsm_log, "%Linux%") | where NOT LIKE(host, "%DC1%")| eval day=strftime(day, "%F") | stats count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Installed Apps</title>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status | sort 0 day | where LIKE(domain, "%osd.mil%") | where NOT LIKE(tsm_log, "%does-not-exist%") | where NOT Like(tsm_log, "%Does-not%") | where NOT like(tsm_log, "%Linux%") | where NOT LIKE(host, "%DC1%")| eval day=strftime(day, "%F")</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">25</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <single>
+        <title>Need installation</title>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status| sort 0 day | where LIKE(domain, "%osd.mil%") | where LIKE(tsm_log, "%does-not-exist%") OR like(tsm_log, "%Does-not%")  | where NOT like(tsm_log, "%Linux%") | where NOT LIKE(host, "%DC1%")| eval day=strftime(day, "%F") | stats count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status | where LIKE(domain, "%osd.mil%") | where LIKE(tsm_log, "%does-not-exist%") OR like(tsm_log, "%Does-not%")  | where NOT like(tsm_log, "%Linux%") | where NOT LIKE(host, "%DC1%")| eval day=strftime(day, "%F")</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Raw Count - OSD Domains - NO linux</title>
+      <single>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status |  sort 0 day | where LIKE(domain, "%osd.mil%") |  where NOT like(tsm_log, "%Linux%") | eval day=strftime(day, "%F") | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Raw Data Everything- OSD Domains - No Linux</title>
+        <search>
+          <query>Question_Name="Splunk-TSM-Backup-and-Client-Status" sourcetype="tanium:connect:syslog" 
+|  stats values(*) as *  by Computer_Name 
+
+| rename Computer_Name as fqdn, Name as application, Service_Name as "service", Service_Status as "service_status", TSM_Log as "tsm_log", Version as version, Job_Status as job, TSM_Log_Date as log_date, TSM_Log_Size as log_size, Service_Name1 as clussvc, Service_Status1 as clus-status
+| fields fqdn application service service_status tsm_log version job log_date log_size clussvc clus-status
+| rex field=log_date "^(?&lt;log_date&gt;\d+\/\d+\/\d+)" 
+| eval log_date=strptime(log_date,"%m/%d/%Y")
+| eval log_date=strftime(log_date, "%F")
+| rex field=fqdn "^(?&lt;host&gt;[\w\-\d]*)\.(?&lt;domain&gt;.*)" 
+| mvcombine tsm_log
+| rex field=tsm_log max_match=0 "^\-\s(?&lt;tsm_log&gt;.*)" 
+| fields - fqdn
+|  rex field=job max_match=1 "^\d{2}\/\d{2}\/\d{4}\-(?&lt;time&gt;\d{2}\:\d{2})"  
+| rex field=job max_match=1 "^(?&lt;day&gt;\d{2}\/\d{2}\/\d{4})"
+| eval Status=case(job LIKE "%completed-successfully%", "Successful", job LIKE "%Session-rejected%", "Rejected", job LIKE "%failed.--Return-code%", "Failed", job LIKE "%[no%", "N/A", TSM_Log LIKE "%Does-not%", "N/A", job LIKE "%Backup-Archive-Client%", "N/A", TSM_Log LIKE "%N/A-on-Linux%", "N/A", job LIKE "%Normal-File%", "N/A")
+| fields host domain day time Status application version service service_status tsm_log log_date log_size clussvc clus-status
+| eval day=strptime(day, "%m/%d/%Y") 
+
+
+| stats first(*) as * by host
+
+| eval days=now()-day | eval days=round('days'/86400,0)
+| fillnull value="N/A" day time Status
+| table host domain day days time Status application version service service_status tsm_log log_date log_size clussvc clus-status |  sort 0 day | where LIKE(domain, "%osd.mil%") |  where NOT like(tsm_log, "%Linux%") | eval day=strftime(day, "%F")</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

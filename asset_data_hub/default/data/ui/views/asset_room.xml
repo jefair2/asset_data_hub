@@ -1,0 +1,276 @@
+<form>
+  <label>Room Lookup</label>
+  <description>Room Locations based off of User AD Room information/Assigned Printers.  Information is NOT 100%</description>
+  <fieldset submitButton="true">
+    <input type="dropdown" token="field1">
+      <label>User Domain</label>
+      <choice value=".mil">All</choice>
+      <fieldForLabel>user_domain</fieldForLabel>
+      <fieldForValue>user_domain</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | stats count by user_domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <default>.mil</default>
+      <initialValue>.mil</initialValue>
+    </input>
+    <input type="dropdown" token="field5">
+      <label>Building</label>
+      <fieldForLabel>b2</fieldForLabel>
+      <fieldForValue>b2</fieldForValue>
+      <search>
+        <query>| inputlookup user_printer_main.csv | stats count by b2</query>
+      </search>
+      <choice value="*">All</choice>
+      <initialValue>*</initialValue>
+      <default>*</default>
+    </input>
+    <input type="multiselect" token="field3">
+      <label>Room</label>
+      <choice value="*">All</choice>
+      <fieldForLabel>location</fieldForLabel>
+      <fieldForValue>location</fieldForValue>
+      <search>
+        <query>| inputlookup user_printer_main.csv | search b2="$field5$" | stats count by location</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <delimiter>  OR </delimiter>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>location="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Main Search - Hosts with Building and Room</title>
+      <single>
+        <search>
+          <query>| inputlookup user_printer_main.csv 
+| where LIKE(domain, "%$field1$%")
+| search tanium_virtual="no"
+| fields - user_printer user_room room building
+| search b2="$field5$" AND $field3$
+| fields date domain host user_dn1 user_fullname ad_ou location 
+| stats values(*) as * by host
+| table date domain host user_fullname user_dn1 ad_ou location 
+| stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+      <table>
+        <title>Domain=$field1$; Building=$field5$; Room=$field3$</title>
+        <search>
+          <query>| inputlookup user_printer_main.csv 
+|  where LIKE(domain, "%$field1$%")
+| search tanium_virtual="no"
+| fields - user_printer user_room room building
+| search b2="$field5$" AND $field3$
+| fields date domain host user_dn1 user_fullname ad_ou location  b2
+| stats list(*) as * by host 
+| table date domain host user_fullname b2 location 
+| sort host 
+| rename user_fullname as "Fullname", b2 as "Building", location as "Room"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field4">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Main Search - Displaying Users</title>
+      <single>
+        <search>
+          <query>| inputlookup user_printer_main.csv 
+|  where LIKE(domain, "%$field1$%")
+| search tanium_virtual="no"
+| fields - user_printer user_room room building
+| search b2="$field5$" AND $field3$
+| fields date domain host user_dn1 user_fullname ad_ou location b2
+| stats first(date) as date, values(domain) as domain, values(location) as location, values(user_dn1) as user_dn1 by user_fullname 
+| table date domain user_fullname user_dn1 location 
+| stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+      <table>
+        <title>Domain=$field1$; Building=$field5$; Room=$field3$</title>
+        <search>
+          <query>| inputlookup user_printer_main.csv 
+|  where LIKE(domain, "%$field1$%")
+| search tanium_virtual="no"
+| fields - user_printer user_room room building
+| search b2="$field5$" AND $field3$
+| fields date domain host user_dn1 user_fullname ad_ou location b2 | sort - date
+| stats first(date) as date, values(domain) as domain, values(location) as location, values(user_dn1) as user_dn1, values(b2) as b2 by user_fullname 
+| table date domain user_fullname user_dn1 b2 location  | sort user_fullname | rename user_fullnamse as "Fullname", b2 as "Building", location as "Room", user_printer as "Printer"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field6">$row.user_fullname$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Host Search</title>
+      <drilldown>
+        <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field24=</link>
+      </drilldown>
+      <input type="text" token="field4" searchWhenChanged="true">
+        <label>host</label>
+      </input>
+      <table>
+        <title>host="$field4$"  -   Click to Send to the Host Lookup Dashboard</title>
+        <search>
+          <query>| inputlookup user_printer_main.csv 
+|  where LIKE(domain, "%$field1$%")
+| search tanium_virtual="no"
+| fields - user_printer user_room room building
+| search host="$field4$" 
+| fields date domain host user_dn1 user_fullname ad_ou location user_printer b2
+| stats values(*) as * by host 
+| table date domain user_dn1 user_fullname ad_ou  b2 location user_printer asset_sam 
+| sort host 
+| rename user_fullname as "Fullname", b2 as "Building", location as "Room", user_printer as "Printer", asset_sam as "SAM", ad_ou as "OU", user_dn1 as "User OU" 
+| transpose column_name=Fields 
+| rename "row 1" as Details</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field24=$field4$</link>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>User Search (Enter Lastname, Lower Case)</title>
+      <input type="text" token="field6" searchWhenChanged="true">
+        <label>User</label>
+      </input>
+      <table>
+        <search>
+          <query>| inputlookup user_printer_main.csv  | where user_fullname LIKE "%$field6$%" | stats count by user_fullname asset_sam user_sam | sort user_fullname | table asset_sam user_fullname  | rename user_fullname as "Fullname", asset_sam as "SAM"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field7">$click.value$</set>
+          <set token="field9">$row.user_sam$</set>
+        </drilldown>
+      </table>
+      <table>
+        <title>SAM= "$field7$"</title>
+        <search>
+          <query>| inputlookup user_printer_main.csv 
+|  where LIKE(domain, "%$field1$%")
+| search tanium_virtual="no"
+| fields - user_printer user_room room building
+| fields date domain host user_dn1 user_fullname ad_ou location user_printer user_sam asset_sam b2 
+| search asset_sam="$field7$" 
+| sort - date 
+| stats first(date) as date, values(domain) as domain, values(user_printer) as user_printer, values(location) as location, first(host) as host, first(ad_ou) as ad_ou, values(user_dn1) as user_dn1, values(user_fullname) as user_fullname, values(user_sam) as user_sam, values(b2) as b2 by asset_sam 
+| table date domain host user_dn1 b2 location ad_ou user_printer asset_sam user_fullname 
+| rename user_fullname as "Fullname", b2 as "Building", location as "Room", user_printer as "Printer", asset_sam as "SAM", ad_ou as "OU" 
+| transpose column_name=Fields 
+| rename "row 1" as Details</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/user_lookup?form.field26=*&amp;form.field24=*&amp;form.field29=*&amp;form.field27=*&amp;form.field30=</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Hosts with no location shown</title>
+      <table>
+        <title>Click to Show Host in Panel Above</title>
+        <search>
+          <query>| inputlookup user_printer_main.csv | where b2="null" and tanium_virtual="no" AND location="null" | fields - asset_sam room building tanium_virtual user_sam | fields date host domain ad_ou | rename ad_ou as "OU"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field4">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>List of Users with no Printer or Room stated</title>
+      <table>
+        <title>Click to Show User in Panel Above</title>
+        <search>
+          <query>| inputlookup user_printer_main.csv | where b2="null" and tanium_virtual="no" AND location="null" AND isnotnull(user_fullname) | fields -  room building tanium_virtual user_sam | where NOT LIKE(user_dn1, "%admin%") AND NOT LIKE(user_dn1, "%service%") | fields user_lastlogon1 asset_sam user_fullname user_email user_dn1 | rename user_lastlogon1 as "User LastLogon", user_fullname as "Fullname", user_email as "Email", user_dn1 as "User OU", asset_sam as "SAM" | stats values(*) as * by SAM | sort Fullname</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field7">$row.SAM$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>List of hosts with rooms stated in AD and no Building associated with it.</title>
+      <table>
+        <search>
+          <query>| inputlookup user_printer_main.csv | where b2="null" AND tanium_virtual="no" | search location!="null" | fields - asset_sam room building tanium_virtual user_sam | fields date host domain ad_ou b2 location | rename ad_ou as "OU" , b2 as "Building", location as "Room"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field4">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>List of Users with Rooms stated in AD and no Building associated with it.</title>
+      <table>
+        <search>
+          <query>| inputlookup user_printer_main.csv | where b2="null" AND tanium_virtual="no" | search location!="null" | fields - room building tanium_virtual user_sam | fields user_lastlogon1 user_fullname user_email user_dn1 b2 location asset_sam| rename user_lastlogon1 as "User LastLogon", user_fullname as "Fullname", user_email as "Email", user_dn1 as "User OU", b2 as "Building", location as "Room", asset_sam as "SAM" | stats values(*) as * by SAM | table "User LastLogon" Fullname SAM Email "User OU" Building Room | sort Fullname</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field7">$row.SAM$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>List of Rooms with Undefined Buildings</title>
+      <table>
+        <search>
+          <query>| inputlookup user_printer_main.csv | where b2="null" AND tanium_virtual="no" | search location!="null" | stats count by location | fields location | rename location as "Room"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

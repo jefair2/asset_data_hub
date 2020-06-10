@@ -1,0 +1,60 @@
+<nav search_view="search" color="#03939f">
+  <view name="asset_list" />
+  <collection label="General Info">
+    <view name="asset_count" />    
+    <view name="disk_drive_details" /> 
+    </collection>
+   <collection label="Main Lookups">
+    <view name="ultra_search" />    
+    <view name="asset_list_host_lookup" />
+    <view name="asset_list_ip_lookup" />
+     <view name="asset_room" />
+    <view name="ou_information" />
+    <view name="server_deep_dive" />
+  </collection>
+  <collection label="Subnet" >
+    <view name="asset_list_subnet_lookup" />
+    <view name="subnet_info" />
+     <view name="subnet_outliers" />   
+    <view name="raw_subnet_data" />
+  </collection>
+    <collection label="User Info">
+    <view name="user_lookup" />
+    <view name="user_ou_lookup" />
+    <view name="user_info"/>
+    <view name="service_accounts"/>
+    </collection>
+  <collection label="Software" >
+    <view name="applications" />
+    <view name="enterprise_software" />
+    <view name="bitlocker" />
+    </collection>
+  <collection label="Tools">
+    <view name="acas" />
+    <view name="hbss" />
+    <view name="sccm" />
+    <view name="splunk" />
+    <view name="tanium" />
+  </collection>
+  <collection label="Patching">
+    <view name="patch_phase_1" />
+    <view name="patch_phase_2" />
+    <view name="patch_phase_3" />
+    <view name="patch_phase_0" />
+  </collection>
+  <collection label="Custom Dashboards">
+    <view name="risk_score_searches_clone2" />
+    <view name="domain_controllers" />
+    <view name="disabled_assets" />
+    <view name="rogue_systems_detected" />
+  </collection>
+  <view name="msl" />
+  <view name="reports2" /> 
+  <view name="search" />  
+    <collection label="Knowledge Objects">
+    <view name="datasets" />
+  <view name="reports" />
+  <view name="alerts" />
+  <view name="dashboards" />
+  </collection>    
+</nav>

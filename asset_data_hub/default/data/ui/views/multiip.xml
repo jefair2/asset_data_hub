@@ -1,0 +1,19 @@
+<form>
+  <label>Multi-ip</label>
+  <fieldset submitButton="false">
+    <input type="checkbox" token="field1">
+      <label>field1</label>
+    </input>
+    <input type="multiselect" token="field2">
+      <label>field2</label>
+      <fieldForLabel>ip2</fieldForLabel>
+      <fieldForValue>ip2</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | fields ip |rex max_match=0 field=ip "(?&lt;ip2&gt;\d{1,3}\.\d{1,3}\.\d{1,3}\.\d+)" | mvexpand ip2 | dedup ip2 | fields ip2</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <delimiter> </delimiter>
+    </input>
+  </fieldset>
+</form>

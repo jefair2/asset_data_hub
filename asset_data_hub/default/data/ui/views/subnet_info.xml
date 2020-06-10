@@ -1,0 +1,146 @@
+<dashboard>
+  <label>Subnet Info</label>
+  <row>
+    <panel>
+      <title>Subnet count by Tool</title>
+      <chart>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | eval tanium_subnet=case(tanium_managed=1, sub_sub), hbss_subnet=case(hbss=1, sub_sub), sccm_subnet=case(sccm_managed=1, sub_sub), acas_subnet=case(acas=1, sub_sub), dhcp_subnet=case(dhcp=1, sub_sub), security_subnet=case(security=1, sub_sub)  | stats dc(tanium_subnet) as Tanium, dc(sccm_subnet) as SCCM, dc(hbss_subnet) as HBSS, dc(dhcp_subnet) as DHCP, dc(security_subnet) as Security, dc(acas_subnet) as ACAS | eval Systems=count | table Systems *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="x">$click.name$</set>
+        </drilldown>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.maximumNumber">900</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisStart</option>
+        <option name="charting.legend.placement">top</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>ACAS Subnets</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | eval acas_subnet=case(acas=1, sub_sub) | stats count by acas_subnet</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+      </table>
+    </panel>
+    <panel>
+      <title>DHCP  Subnets</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | eval dhcp_subnet=case(dhcp=1, sub_sub)| stats count by dhcp_subnet</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+      </table>
+    </panel>
+    <panel>
+      <title>HBSS  Subnets</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub |  eval hbss_subnet=case(hbss=1, sub_sub)| stats count by hbss_subnet</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+      </table>
+    </panel>
+    <panel>
+      <title>SCCM  Subnets</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | eval sccm_subnet=case(sccm_managed=1, sub_sub) |stats count by sccm_subnet</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Security  Subnets</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | eval security_subnet=case(security=1, sub_sub)  | stats count by security_subnet</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Tanium Subnets</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | eval tanium_subnet=case(tanium_managed=1, sub_sub)  |stats count by tanium_subnet | rename tanium_subnet as Tanium</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Total Subnets seen</title>
+      <single>
+        <search ref="subnet_info - Total Subnets"></search>
+      </single>
+    </panel>
+    <panel>
+      <title>Total VLAN seen</title>
+      <single>
+        <search ref="subnet_info - total vlan"></search>
+      </single>
+    </panel>
+    <panel>
+      <title>Total VRF Seen</title>
+      <single>
+        <search ref="subnet_info-total vrf"></search>
+      </single>
+    </panel>
+    <panel>
+      <title>Total Location Seen</title>
+      <single>
+        <search ref="subnet_info - total location"></search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Subnets Seen</title>
+      <table>
+        <search ref="subnet_info - Subnets"></search>
+      </table>
+    </panel>
+    <panel>
+      <title>VLAN seen</title>
+      <table>
+        <search ref="subnet_info - Vlan"></search>
+      </table>
+    </panel>
+    <panel>
+      <title>VRF Seen</title>
+      <table>
+        <search ref="subnet_info - vrf"></search>
+      </table>
+    </panel>
+    <panel>
+      <title>Locations seen</title>
+      <table>
+        <search ref="subnet_info - location"></search>
+      </table>
+    </panel>
+  </row>
+</dashboard>

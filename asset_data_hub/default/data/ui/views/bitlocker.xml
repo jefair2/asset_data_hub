@@ -1,0 +1,124 @@
+<form>
+  <label>Bitlocker</label>
+  <fieldset submitButton="true">
+    <input type="text" token="field1">
+      <label>Host</label>
+      <default>*</default>
+    </input>
+    <input type="multiselect" token="field2">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>domain</fieldForLabel>
+      <fieldForValue>domain</fieldForValue>
+      <search>
+        <query>| inputlookup bitlocker.csv| stats count by domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>domain="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="multiselect" token="field3">
+      <label>OS Type</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>os_func</fieldForLabel>
+      <fieldForValue>os_func</fieldForValue>
+      <search>
+        <query>| inputlookup bitlocker.csv | stats count by os_func</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>os_func="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="radio" token="field4">
+      <label>Bitlocker Status</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>Protection_Status</fieldForLabel>
+      <fieldForValue>Protection_Status</fieldForValue>
+      <search>
+        <query>| inputlookup bitlocker.csv | stats count by Protection_Status</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="radio" token="field5">
+      <label>VDI</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>tanium_vdi</fieldForLabel>
+      <fieldForValue>tanium_vdi</fieldForValue>
+      <search>
+        <query>| inputlookup bitlocker.csv| stats count by tanium_vdi</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="radio" token="field6">
+      <label>TPM</label>
+      <choice value="*">All</choice>
+      <fieldForLabel>Has_TPM</fieldForLabel>
+      <fieldForValue>Has_TPM</fieldForValue>
+      <search>
+        <query>| inputlookup bitlocker.csv| stats count by Has_TPM</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Bitlocker Status by Type</title>
+      <chart>
+        <search>
+          <query>| inputlookup bitlocker.csv | search host="*"  AND  Protection_Status=* AND tanium_vdi="no"  | search os_func="*"  | chart count by os_func Protection_Status</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">top</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <single>
+        <search>
+          <query>| inputlookup bitlocker.csv | search host="$field1$"  AND  Protection_Status="$field4$" AND tanium_vdi="$field5$"  | search $field3$ AND Has_TPM="$field6$" | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Bitlocker Status</title>
+      <table>
+        <search>
+          <query>| inputlookup bitlocker.csv | search host="$field1$"  AND  Protection_Status=$field4$ AND tanium_vdi="$field5$"  | search $field3$ AND Has_TPM="$field6$" | table date host ip domain os_func tanium_vdi Encryption_Method Prot*  Has_TPM Enabled Owned TPM_Version</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

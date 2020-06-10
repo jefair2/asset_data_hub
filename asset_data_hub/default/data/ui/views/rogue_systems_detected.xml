@@ -1,0 +1,128 @@
+<dashboard>
+  <label>Rogue Systems Detected</label>
+  <row>
+    <panel>
+      <title>Count of Rogue Systems Detected - SIPR on NIPR</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv | search domain=*smil.mil | stats count AS "Total Count of Rogue Systems Detected"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">100</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x65a637","0x6db7c6","0xf7bc38","0xf58f39","0xd93f3c"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>List of Rogue Systems Detected - SIPR on NIPR</title>
+      <table>
+        <search>
+          <query>|inputlookup asset_list.csv |search fqdn="*.smil.mil" | table fqdn,ip,tanium_serial,date
+ | eval _time=strptime(date, "%m/%d/%y") | sort -_time | fields - _time | rename date as last_observed</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Count of Rogue Systems Detected - Named as Serial Numbers</title>
+      <single>
+        <search>
+          <query>|inputlookup asset_list.csv | rex field=host "(?&lt;host_name&gt;^[0-9]{2}[a-z]{1}[0-9]{1}[a-z]{1}[a-z]{1}[0-9]{1}$$|^[0-9]{1}[a-z]{1}[0-9]{1}[a-z]{2}[0-9]{2}$$|^[0-9]{1}[a-z]{1}[0-9]{2}[a-z]{2}[0-9]{1}$$|^[a-z]{3}[0-9]{4}[a-z]{2}[0-9]{1}$$|^[0-9]{1}[a-z]{5}[0-9]{1}$$|^[0-9]{1}[a-z]{2}[0-9]{4}[a-z]{3}$$|^[A-Z]{7}[0-9]{2}[A-Z]{1}$$)" | search host_name=* | fields + host host_name sccm_serial_number | stats count AS "Total Number of Rogue Systems named as Serial Numbers"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">100</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x65a637","0x6db7c6","0xf7bc38","0xf58f39","0xd93f3c"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>List of Rogue Systems Detected - Named as Serial Numbers</title>
+      <table>
+        <search>
+          <query>|inputlookup asset_list.csv | rex field=host "(?&lt;host_name&gt;^[0-9]{2}[a-z]{1}[0-9]{1}[a-z]{1}[a-z]{1}[0-9]{1}$|^[0-9]{1}[a-z]{1}[0-9]{1}[a-z]{2}[0-9]{2}$|^[0-9]{1}[a-z]{1}[0-9]{2}[a-z]{2}[0-9]{1}$|^[a-z]{3}[0-9]{4}[a-z]{2}[0-9]{1}$|^[0-9]{1}[a-z]{5}[0-9]{1}$|^[0-9]{1}[a-z]{2}[0-9]{4}[a-z]{3}$|^[A-Z]{7}[0-9]{2}[A-Z]{1}$)" | search host_name=* 
+| eval _time=strptime(date, "%m/%d/%y")
+| fields + host host_name tanium_serial mac date 
+| sort -_time | fields - _time | rename date as last_observed</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Count of Rogue Systems with Odd Domains</title>
+      <single>
+        <title>Within 90 Days</title>
+        <search>
+          <query>|inputlookup asset_list.csv | search (domain!="*.mil" AND domain!="*pbmo.loc" AND domain!="*dmz.local*" AND domain!="*uscaaf.gov" AND domain!="*dodea.edu" AND domain!="*oasdpa.local" AND domain!="*jsu.local" AND domain!="*zero.clients" AND domain!="*rsrc.osd.mil*" AND domain!="*army.mil*") | eval date=strptime(date, "%F")| where date &gt;= now()-(60*60*24*90) |  stats count as "Total Count of Systems with Odd Domains"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>List of Rogue Systems with Odd Domains</title>
+      <table>
+        <title>Within 90 Days</title>
+        <search>
+          <query>|inputlookup asset_list.csv | search (domain!="*.mil" AND domain!="*pbmo.loc" AND domain!="*dmz.local*" AND domain!="*uscaaf.gov" AND domain!="*dodea.edu" AND domain!="*oasdpa.local" AND domain!="*jsu.local" AND domain!="*zero.clients" AND domain!="*rsrc.osd.mil*" AND domain!="*army.mil*") | fields host,fqdn,ip,mac,domain,date | eval date=strptime(date, "%F")| where date &gt;= now()-(60*60*24*90) | sort - date | eval date=strftime(date, "%F") | rename date as "Last Observed"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

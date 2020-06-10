@@ -1,0 +1,14 @@
+<dashboard>
+  <label>Active Directory</label>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| inputlookup ad_list.csv</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</dashboard>

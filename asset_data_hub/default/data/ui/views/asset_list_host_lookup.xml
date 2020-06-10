@@ -1,0 +1,347 @@
+<form theme="dark">
+  <label>Host Lookup</label>
+  <search>
+    <query>| inputlookup sccm_software_inventory.csv | search host=$field24$ | stats count</query>
+    <earliest>-24d@d</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="sccm_exist"></unset>
+        <set token="sccm_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="sccm_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <search id="bc">
+    <query>
+      | inputlookup asset_list.csv | where isnotnull(bluecoat) | stats count
+    </query>
+    <earliest>-24d@d</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="bc_exist"></unset>
+        <set token="bc_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="bc_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <search>
+    <query>`hbss_dlp`
+| eval host=lower(Workstation_Name) | search host=$field24$ | stats count
+    </query>
+    <earliest>-24h@h</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="dlp_exist"></unset>
+        <set token="dlp_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="dlp_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <search>
+    <query>`hbss_compliance` BenchmarkID!=LatestPatchPolicyBenchmark SystemName=$field24$
+| eval StartTime_Rule=strftime(strptime(StartTime_Rule,"%F"),"%F")
+| stats count 
+    </query>
+    <earliest>-24h@h</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="compliance_exist"></unset>
+        <set token="compliance_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="compliance_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <search>
+    <query> | inputlookup hbss_software_inventory.csv | search host=$field24$ | stats count</query>
+    <earliest>-24h@h</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="hbss_software_exist"></unset>
+        <set token="hbss_software_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="hbss_software_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <search>
+    <query> `acas_vuln` netbiosName=*$field24$* </query>
+    <earliest>-7d@d</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="acas_exist"></unset>
+        <set token="acas_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="acas_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <fieldset submitButton="true">
+    <input type="text" token="field1" searchWhenChanged="false">
+      <label>Partial Hostname</label>
+    </input>
+    <input type="text" token="field24" searchWhenChanged="true">
+      <label>Exact Hostname</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Partial Hostname Search</title>
+      <table>
+        <title>Click for Exact host info.</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search host="$field1$*"  | table host domain ip</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="field24">$click.value$</set>
+          <set token="field25">$row.ip$</set>
+        </drilldown>
+      </table>
+      <single>
+        <title>Host ($field24$) Seen in the last 30 days</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search host="$field24$" | eval date=strptime(date,"%F") | eval recent=if(date &gt;= now()-(60*60*24*30),"YES","NO") |  eval date=strftime(date,"%F")  | table recent | rename recent as "Seen in 30 days"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <table>
+        <title>Host ($field24$) General Information</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search host="$field24$"   |appendpipe [stats count| eval host="DOES NOT EXIST"  | where count==0 |table host] | rename tanium_username as "Last User Login", sub_subnet as "Subnet" |table ip Subnet mac domain fqdn last_user os date description "Last User Login" | eval os=trim(os) | transpose column_name=Info | rename "row 1" as data</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+      <table>
+        <title>Discovered by: Click on Tool name to drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| search host=$field24$ 
+| table ad acas hbss ise sccm splunk solarwinds cylance bluecoat 
+| replace "1" with "Yes" in acas ad bluecoat cylance hbss ise sccm solarwinds splunk
+| transpose  column_name=Tool include_empty=false
+| rename "row 1" as Discovery</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="field2">$click.value$</set>
+          <set token="field3">$click.name2$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Tool Drilldown</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | search host="$field24$"  | fields $field2$*  | transpose column_name=$field2$ | rename "row 1" as Info</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">50</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>OSCAP Results CM-6</title>
+      <table>
+        <title>LInux Only</title>
+        <search>
+          <query>index="n_cy_compliance" sourcetype="disa:xccdf" host=$field24$*
+| rex field=fixtext "(?&lt;stig_id&gt;DISA-STIG-[^\n\r]+)"
+| rex field=host "(?&lt;host&gt;[^\.]+)"
+| rex max_match=10 field=fixtext "(?&lt;rmf_control&gt;NIST-800-53[^\n\r]+)"
+| mvexpand rmf_control
+| dedup rmf_control stig_id
+| table _time result rmf_control stig_id</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$dlp_exist$">
+    <panel>
+      <title>HBSS DLP Information</title>
+      <table>
+        <search>
+          <query>`hbss_dlp`
+| eval host=lower(Workstation_Name)
+| search host=$field24$
+| table Time TimeZone username UserGroups host SourceApp Size ProductId VendorId Rules Filename ApplicationFilename</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$hbss_software_exist$">
+      <title>Software Inventory (HBSS)</title>
+      <table>
+        <search>
+          <query>| inputlookup hbss_software_inventory.csv
+| search host=$field24$
+| table install_date product_name product_vendor product_version</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel depends="$compliance_exist$">
+      <title>HBSS Pass to Fail Ratio</title>
+      <chart>
+        <search>
+          <query>`hbss_compliance` BenchmarkID!=LatestPatchPolicyBenchmark SystemName=$field24$
+| rex field=RuleID "xccdf_mil.disa.stig.rule_(?&lt;hbss_ruleid&gt;[^_]+)_rule"
+| eval StartTime_Rule=strftime(strptime(StartTime_Rule,"%F"),"%F")
+| stats count by Result</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel depends="$compliance_exist$">
+      <title>HBSS STIG Failures</title>
+      <table>
+        <search>
+          <query>`hbss_compliance` BenchmarkID!=LatestPatchPolicyBenchmark Result=Fail SystemName=$field24$
+| rex field=RuleID "xccdf_mil.disa.stig.rule_(?&lt;hbss_ruleid&gt;[^_]+)_rule"
+| eval StartTime_Rule=strftime(strptime(StartTime_Rule,"%F"),"%F")
+| table StartTime_Rule AuditName SystemName hbss_ruleid Result</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$acas_exist$">
+      <title>ACAS Severity Ratio</title>
+      <chart>
+        <search>
+          <query>`acas_vuln` netbiosName=*$field24$*
+| fields netbiosName severity pluginID vendor_severity synopsis lastSeen
+| fields - _raw _time
+| rex field=netbiosName "\\\(?&lt;host&gt;.*)"
+| eval lastSeen=strftime(lastSeen,"%F")
+| rename lastSeen as Date host as Host vendor_severity as Severity synopsis as Description pluginID as "Plugin ID"
+| stats count by Severity</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel depends="$sccm_exist$">
+      <title>Software Inventory (SCCM)</title>
+      <table>
+        <search>
+          <query>| inputlookup sccm_software_inventory.csv
+| search host=$field24$
+| dedup product_name
+| table product* family
+| sort product_name</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$acas_exist$">
+      <table>
+        <title>ACAS Findings</title>
+        <search>
+          <query>`acas_vuln` netbiosName=*$field24$*
+| fields netbiosName severity pluginID vendor_severity synopsis lastSeen
+| fields - _raw _time
+| where !like(vendor_severity,"%Info%")
+| rex field=netbiosName "\\\(?&lt;host&gt;.*)"
+| eval lastSeen=strftime(lastSeen,"%F")
+| rename lastSeen as Date host as Host vendor_severity as Severity synopsis as Description pluginID as "Plugin ID"
+| table Date Host "Plugin ID" Description Severity</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$bc_exist$">
+      <title>Bluecoat Information</title>
+      <table>
+        <search>
+          <query>`network_index` sourcetype=bluecoat* c_ip=*$field25$* category!="Content Delivery Networks" category!="*Web Infrastructure*"
+| table date, time, duration, category, user, http_method, c_ip,cs_host uri_path, uri_query, http_content_type, http_user_agent
+| rename date as Date, time as Time, duration as Duration, category as Category, user as User, http_method as "HTTP Method", c_ip AS "Client IP", http_content_type as "HTTP Content Type", http_user_agent as "HTTP User Agent"
+| sort 0 - Date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

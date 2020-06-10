@@ -1,0 +1,161 @@
+<dashboard theme="dark">
+  <label>Asset Breakdown</label>
+  <row>
+    <panel>
+      <title>Server Count within 15 days.</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15) | search os_class="*server*" | stats count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Workstation count within 15 days</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15) | search os_class="*workstation*" | stats count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>VDI Count within 15 days</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15) | search os_vdi=yes | stats count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Server count by OS within 15 days.</title>
+      <table>
+        <title>Click to Drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*15) 
+| search os_class="*server*"
+| eval os_type=case(isnotnull(ad_os),ad_os, isnotnull(hbss_os),hbss_os_type,isnotnull(cylance_os),cylance_os_type,isnotnull(acas_os),acas_os_type)
+| eval os_type1=case(os_type LIKE "%linux%" OR os_type LIKE "%esx%" OR os_type LIKE "%windows%" OR os_type LIKE "%centos%",os_type , 1==1, "Unknown")
+| search os_type1!=Unknown
+| stats count by os_type1
+| sort 0 - count 
+| rename os_type1 as OS, count as Count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="field4">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Workstation count by OS within 15 days</title>
+      <table>
+        <title>Click to Drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*15) 
+| search os_class="*workstation*"
+| eval os_type=case(isnotnull(ad_os),ad_os, isnotnull(hbss_os),hbss_os_type,isnotnull(cylance_os),cylance_os_type,isnotnull(acas_os),acas_os_type)
+| eval os_type1=case(os_type LIKE "%linux%" OR os_type LIKE "%esx%" OR os_type LIKE "%windows%" OR os_type LIKE "%centos%",os_type , 1==1, "Unknown")
+| search os_type1!=Unknown
+| stats count by os_type1
+| sort 0 - count 
+| rename os_type1 as OS, count as Count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="field4">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Servers by domain within 15 days</title>
+      <table>
+        <title>Click to Drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15) | search os_class=server | stats count as Servers by domain | sort 0 - Servers</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="field1">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Workstation by domain within 15 days</title>
+      <table>
+        <title>Click to Drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15) | search os_class=workstation | stats count as Workstations by domain | fillnull value="N/A" | sort 0 - Workstations</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="field2">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Drilldown by OS</title>
+      <table>
+        <title>OS= $field4$</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*15)  
+| eval date=strftime(date,"%F") 
+| fillnull value=" " 
+| eval os_type=case(isnotnull(ad_os),ad_os, isnotnull(hbss_os),hbss_os_type,isnotnull(cylance_os),cylance_os_type,isnotnull(acas_os),acas_os_type)
+| search os_type="*$field4$*" 
+| table host, ip mac date domain</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Server Drilldown by Domain</title>
+      <table>
+        <title>Domain=$field1$</title>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15)  | eval date=strftime(date,"%F") | where os_class="server" | search domain="$field1$" | table host ip mac date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Workstation Drilldown by Domain</title>
+      <table>
+        <title>Domain=$field2$</title>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*15)  | eval date=strftime(date,"%F") |where os_class="workstation" | search domain="$field2$" | table host ip mac date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

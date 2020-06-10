@@ -1,0 +1,307 @@
+<form>
+  <label>Risk Score searches</label>
+  <description>Search by Domain, OU and OS Type.</description>
+  <fieldset submitButton="true">
+    <input type="multiselect" token="field42">
+      <label>OS Type</label>
+      <fieldForLabel>os_class</fieldForLabel>
+      <fieldForValue>os_class</fieldForValue>
+      <search>
+        <query>| inputlookup subnet_score2.csv | stats count by os_class</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <delimiter> OR </delimiter>
+      <valuePrefix>os_class="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field26" searchWhenChanged="false">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>domain="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>domain</fieldForLabel>
+      <fieldForValue>domain</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv|  search ou1!="n/a" | stats count by domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field39">
+      <label>Top OU</label>
+      <fieldForLabel>ou_t1</fieldForLabel>
+      <fieldForValue>ou_t1</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ | stats count by ou_t1</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">all</choice>
+      <valuePrefix>ou_t1="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field32">
+      <label>Sub OU-1</label>
+      <fieldForLabel>ou_t2</fieldForLabel>
+      <fieldForValue>ou_t2</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ AND  $field39$ | stats count by ou_t2</query>
+      </search>
+      <choice value="*">all</choice>
+      <valuePrefix>ou_t2="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field33">
+      <label>Sub OU-2</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t3</fieldForLabel>
+      <fieldForValue>ou_t3</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ AND $field39$ AND  $field32$ | stats count by ou_t3</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t3="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field34">
+      <label>Sub OU-3</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t4</fieldForLabel>
+      <fieldForValue>ou_t4</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ | stats count by ou_t4</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t4="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field35">
+      <label>Sub OU-4</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t5</fieldForLabel>
+      <fieldForValue>ou_t5</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ | stats count by ou_t5</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t5="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field36">
+      <label>Sub OU-5</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t6</fieldForLabel>
+      <fieldForValue>ou_t6</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$| stats count by ou_t6</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t6="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="field37">
+      <label>Sub OU-6</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t7</fieldForLabel>
+      <fieldForValue>ou_t7</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | stats count by ou_t7</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t6="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>OU information</title>
+      <single>
+        <title>Risk Score of OU</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv  |  search $field42$ $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score
+| where acas_date &gt;= now()-(60*60*24*30) 
+| eval acas_date=strftime(acas_date, "%F") | fillnull value="0" score | stats avg(score) as score | eval score=round(score,2)</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.00</option>
+      </single>
+      <single>
+        <title>Total # of IPs scanned in OU</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv
+| search $field42$ $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$
+ | rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score
+
+| where acas_date &gt;= now()-(60*60*24*30) 
+| eval acas_date=strftime(acas_date, "%F") | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+      <table>
+        <title>Subnets Found in OU and Risk Score associated with Count.  Click Subnet to send to Subnet Risk Score page</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv |search $field42$ $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ |  rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score
+| where acas_date &gt;= now()-(60*60*24*30) 
+| eval acas_date=strftime(acas_date, "%F") | table host date ip location plugin score subnet vlan vrf weight  | rex field=subnet "^(?&lt;subnet1&gt;.*?)\s" | eval subnet2=if(isnull(subnet1), subnet, subnet1) | fields - subnet1 | table host ip acas_date date score subnet* |  rex field=ip "^(?&lt;subnet1&gt;\d+\.\d+\.\d+)\." | eval subnet1=subnet1.".x" | eval subnet2=if(isnull(subnet), subnet1, subnet2) | fillnull value="0" score | stats avg(score) as score, count as count by subnet2 | eval risk_score=round(score,2) |  rename subnet2 as Subnet, count as Count, risk_score as "Risk Score" | table Subnet Count "Risk Score" | sort - "Risk Score"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <drilldown>
+          <set token="field1">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Subnet Risk Score information based on OU</title>
+      <table>
+        <title>Can drill down on fields Host, IP2 and subnet</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | search $field42$ $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$  |rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score
+| where acas_date &gt;= now()-(60*60*24*30) 
+| eval acas_date=strftime(acas_date, "%F") | rex field=subnet "^(?&lt;subnet1&gt;.*?)\s"  | eval subnet2=if(isnull(subnet1), subnet, subnet1) | fields - subnet1 subnet | rename subnet2 as subnet | table host ip  acas_date subnet score location vlan vrf  date | sort - score</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <drilldown>
+          <set token="field41">$row.host$</set>
+          <set token="field40">$row.ip2$</set>
+          <set token="field1">$row.subnet$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Host Coverage by Tools within 30 days</title>
+      <chart>
+        <title>Active Agents on host (Tanium, Splunk, HBSS, SCCM) | Scanned Hosts (ACAS)</title>
+        <search>
+          <query>|inputlookup asset_list.csv |search $field42$ $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$  |  eval tanium_date=strptime(tanium_date,"%F"), sccm_date=strptime(sccm_date,"%F"), hbss_date=strptime(hbss_date,"%F"), splunk_date=strptime(splunk_date,"%F"), acas_date=strptime(acas_date,"%F")  | stats sum(eval(if(tanium_managed=1 AND tanium_date &gt;= now()-(60*60*24*30),1,0))) as "Tanium", sum(eval(if(sccm_managed=1 AND sccm_date &gt;= now()-(60*60*24*30),1,0))) as "SCCM", sum(eval(if(hbss_managed=1 AND hbss_date &gt;= now()-(60*60*24*30),1,0))) as "HBSS", sum(eval(if(splunk=1 AND splunk_date &gt;= now()-(60*60*24*30),1,0))) as "Splunk", sum(eval(if(acas=1 AND acas_date &gt;= now()-(60*60*24*30),1,0))) as "ACAS"| eval Systems="Total" | table Systems * |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">Total</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="height">500</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Subnet Specifics</title>
+      <input type="dropdown" token="field1" searchWhenChanged="true">
+        <label>Search Subnet</label>
+        <fieldForLabel>subnet2</fieldForLabel>
+        <fieldForValue>subnet2</fieldForValue>
+        <search>
+          <query>| inputlookup subnet_score2.csv | rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score | rex field=subnet "^(?&lt;subnet1&gt;.*?)\s" | eval subnet2=if(isnull(subnet1), subnet, subnet1) | fields - subnet1 | table host ip acas_date vlan vrf location date score subnet* | rex field=ip "^(?&lt;subnet1&gt;\d+\.\d+\.\d+)\." | eval subnet1=subnet1.".x" | eval subnet2=if(isnull(subnet), subnet1, subnet2) | stats count by subnet2</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+      </input>
+      <table>
+        <title>Search Subnet ($field1$)</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score
+| where acas_date &gt;= now()-(60*60*24*30) 
+| eval acas_date=strftime(acas_date, "%F") | table host acas_date date ip location plugin score subnet vlan vrf weight  | rex field=subnet "^(?&lt;subnet1&gt;.*?)\s" | eval subnet2=if(isnull(subnet1), subnet, subnet1) | fields - subnet1 | table host ip acas_date vlan vrf location date score subnet* | rex field=ip "^(?&lt;subnet1&gt;\d+\.\d+\.\d+)\." | eval subnet1=subnet1.".x" | eval subnet2=if(isnull(subnet), subnet1, subnet2) | fillnull value="n/a" vlan location vrf | search subnet2="$field1$" | fillnull value="0" score | stats values(vrf) as VRF, values(vlan) as VLAN, values(location) as Location, avg(score) as score, count as count by subnet2 | eval risk_score=round(score,2) |  rename subnet2 as Subnet, count as "IP Count", risk_score as "Risk Score" | table Subnet "Risk Score" "IP Count"  VLAN VRF Location | transpose column_name=Info | rename "row 1" as Data</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts seen by Subnet</title>
+      <table>
+        <title>$field1$    |</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv |search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score
+| where acas_date &gt;= now()-(60*60*24*30) 
+| eval acas_date=strftime(acas_date, "%F") | table host acas_date date ip location plugin score subnet vlan vrf weight os* | rex field=subnet "^(?&lt;subnet1&gt;.*?)\s" | eval subnet2=if(isnull(subnet1), subnet, subnet1) | fields - subnet1 | table host ip acas_date vlan vrf location date score subnet* os* | rex field=ip "^(?&lt;subnet1&gt;\d+\.\d+\.\d+)\." | eval subnet1=subnet1.".x" | eval subnet2=if(isnull(subnet), subnet1, subnet2) | search subnet2="$field1$" | stats first(*) as * by ip | fields host ip acas_date score os_class os</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <drilldown>
+          <set token="field41">$row.host$</set>
+          <set token="field40">$row.ip$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>IP Lookup</title>
+      <input type="text" token="field40" searchWhenChanged="true">
+        <label>IP</label>
+        <default>none</default>
+      </input>
+      <table>
+        <title>$field40$</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | search ip=$field40$ | rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score | eval acas_date=strftime(acas_date, "%F") | fields score ip acas_date date location subnet vlan vrf plugin os_class os| transpose | rename column as Fields, "row 1" as Data</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Host Lookup</title>
+      <input type="text" token="field41">
+        <label>Host</label>
+        <default>none</default>
+      </input>
+      <table>
+        <title>$field41$</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv |rename Location as location, Subnet as subnet, VLAN as vlan,  lastSeen as acas_date, system as host, riskScore as score | eval acas_date=strftime(acas_date, "%F") | search host=$field41$ | fields score ip acas_date date location subnet vlan vrf plugin os_class os| transpose | rename column as Fields, "row 1" as Data | rename ip2 as ip</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

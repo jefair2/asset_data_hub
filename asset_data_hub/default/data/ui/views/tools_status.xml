@@ -1,0 +1,150 @@
+<form theme="dark">
+  <label>Tool Status</label>
+  <description>Active Directory is the authoritative source for total hosts within environment, for this dashboard. Therefore, Active Directory should be 100% Detected</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="tool">
+      <label>Tool</label>
+      <fieldForLabel>field</fieldForLabel>
+      <fieldForValue>field</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv 
+| fields - *_* ip host date domain mac fqdn
+| transpose 
+| rename column as field
+| table field</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+        <done>
+          <set token="Total"></set>
+        </done>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>$tool$ Detected vs Not Detected</title>
+      <chart>
+        <search>
+          <query>| inputlookup asset_list.csv
+| eval date= max(ad_date,sccm_date,bluecoat_date,ise_date,solarwinds_date,hbss_date,splunk_date,acas_date,cylance_date)
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*30) 
+| eval $tool$_man=if($tool$=1, "Detected", if(ad=1, "Not Detected",null())) 
+| chart count by $tool$_man</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>$tool$ Percent Not Detected</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv
+| eval date= max(ad_date,sccm_date,bluecoat_date,ise_date,solarwinds_date,hbss_date,splunk_date,acas_date,cylance_date)
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*30) 
+| eval _time = date
+| eval $tool$_man=if($tool$=1, "Detected", if(ad=1, "Not Detected",null()))
+| stats count as sub_total by $tool$_man
+| eventstats sum(sub_total) as total
+| where like($tool$_man,"%Not Detected%")
+| eval ratio = round(sub_total/total*100,2)
+| eval ratio = ratio+"%"
+| fields ratio</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>$tool$ Counts Within 30 days</title>
+      <chart>
+        <search>
+          <query>| inputlookup asset_list.csv
+| eval date= max(ad_date,sccm_date,bluecoat_date,ise_date,solarwinds_date,hbss_date,splunk_date,acas_date,cylance_date)
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*30) 
+| eval $tool$_man=if($tool$=1, "Detected", if(ad=1, "Not Detected",null())) 
+| stats count by $tool$_man 
+| addcoltotals 
+| fillnull value="Total" $tool$_man  
+| rename $tool$_man as "$tool$ Hosts"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>$tool$ Fields of Interest</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | fields $tool$* | transpose | rename column as field| table field</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts unmanaged by $tool$</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| where isnull($tool$) OR $tool$=0 
+| eval date=case(!isnull(ad_date),ad_date,
+                 !isnull(hbss_date),hbss_date,
+                 !isnull(cylance_date),cylance_date,
+                 !isnull(splunk_date),splunk_date,
+                 !isnull(solarwinds_date),solarwinds_date,
+                 !isnull(bluecoat_date),bluecoat_date,
+                 !isnull(acas_date),acas_date,
+                 !isnull(ise_date),ise_date)
+| eval date=strptime(date,"%F") 
+| where date &gt;= now()-(60*60*24*30) 
+| eval splunk=if(splunk=1,1,0), 
+       cylance=if(cylance=1,1,0), 
+       acas=if(acas=1,1,0), 
+       sccm=if(sccm=1,1,0), 
+       hbss=if(hbss=1,1,0)
+| eval total = cylance + hbss + acas + sccm + splunk
+| eval splunk=if(splunk=1,"X",""), 
+       cylance=if(cylance=1,"X",""), 
+       acas=if(acas=1,"X",""), 
+       sccm=if(sccm=1,"X",""), 
+       hbss=if(hbss=1,"X","")
+| fields host date cylance hbss splunk sccm acas total
+| eval date=strftime(date,"%F")</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Raw $tool$ Data- All Time</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | where $tool$=1 |  fields host $tool$*</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">10</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

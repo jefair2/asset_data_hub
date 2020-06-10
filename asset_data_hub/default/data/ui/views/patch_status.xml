@@ -1,0 +1,159 @@
+<form>
+  <label>Patch Status</label>
+  <fieldset submitButton="false">
+    <input type="text" token="field1">
+      <label>KB Article</label>
+    </input>
+    <input type="text" token="field2">
+      <label>Host Search</label>
+    </input>
+    <input type="radio" searchWhenChanged="true" token="field3">
+      <label>Class</label>
+      <choice value="*">All</choice>
+      <fieldForLabel>type</fieldForLabel>
+      <fieldForValue>type</fieldForValue>
+      <search>
+        <query>| inputlookup available_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | dedup type | table type</query>
+      </search>
+      <default>*</default>
+    </input>
+    <input type="radio" token="field4" searchWhenChanged="true">
+      <label>OS version</label>
+      <choice value="*">All</choice>
+      <fieldForLabel>os</fieldForLabel>
+      <fieldForValue>os</fieldForValue>
+      <search>
+        <query>| inputlookup available_patches.csv |  eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$ | stats count by os | table os</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Lookup: Uninstalled Patches by Host</title>
+      <table>
+        <title>Host=$field2$</title>
+        <search>
+          <query>| inputlookup available_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$ | search host="$field2$" | table checkin patch patchdate severity</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Lookup: KB Article Uninstalled patches.</title>
+      <table>
+        <title>KB=$field1$</title>
+        <search>
+          <query>| inputlookup available_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$| search kb="*$field1$*" | table host domain checkin patchdate patch severity</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Lookup: Installed Patches by host</title>
+      <table>
+        <title>Host=$field2$</title>
+        <search>
+          <query>| inputlookup installed_patches.csv  |eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$| search host="$field2$"|  table host checkin installdate installpatch | sort - 0 - installdate</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Lookup: Installed patches by KB</title>
+      <table>
+        <title>KB=$field1$</title>
+        <search>
+          <query>| inputlookup installed_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$| rex max_match=0 field=installpatch "(?&lt;patch1&gt;\S+)" | mvexpand patch1 | search patch1="*$field1$*" | table host checkin installdate patch1 | sort - 0 - installdate</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Count of Uninstalled Patches by Severity.</title>
+      <table>
+        <title>Click for drilldown</title>
+        <search>
+          <query>| inputlookup available_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$|  stats count by severity | table severity  count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="severity">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Count of uninstalled patches</title>
+      <title>Patch Drilldown</title>
+      <table>
+        <title>Click for drilldown</title>
+        <search>
+          <query>| inputlookup available_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | search type=* | search os=*| search patch!="windows-malicious-software*" | stats count by patch patchdate severity | sort 0 -count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="patch">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Severity Drilldown</title>
+      <table>
+        <title>Click to view patch</title>
+        <search>
+          <query>| inputlookup available_patches.csv | eval type=if(os LIKE "%server%", "server", "workstation") | search type=$field3$ | search os=$field4$| search severity="$severity$" | stats count by patch | sort 0 - count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="patch">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Patch=$patch$</title>
+        <search>
+          <query>| inputlookup available_patches.csv |eval type=if(os LIKE "%server%", "server", "workstation") |  search type=$field3$ | search os=$field4$| search patch="$patch$" | table host domain severity patchdate</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Installed Patches Raw Data</title>
+        <search>
+          <query>| inputlookup installed_patches.csv</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Available patches</title>
+      <table>
+        <title>Raw Data</title>
+        <search>
+          <query>| inputlookup available_patches.csv</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

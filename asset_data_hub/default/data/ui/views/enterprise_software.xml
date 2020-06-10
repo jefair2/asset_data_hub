@@ -1,0 +1,124 @@
+<form>
+  <label>Enterprise Software</label>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="radio" token="field1">
+      <label>Software</label>
+      <delimiter> OR </delimiter>
+      <valuePrefix>LIKE(Name, "%</valuePrefix>
+      <valueSuffix>%")</valueSuffix>
+      <fieldForLabel>Name</fieldForLabel>
+      <fieldForValue>Name</fieldForValue>
+      <search>
+        <query>| inputlookup importantapps.csv | stats count by Name</query>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="radio" token="field3">
+      <label>Software Version</label>
+      <fieldForLabel>Version</fieldForLabel>
+      <fieldForValue>Version</fieldForValue>
+      <search>
+        <query>| inputlookup importantapps.csv | search Name="$field1$" | stats count by Version |</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="radio" token="field2">
+      <label>OS Class</label>
+      <delimiter> OR  </delimiter>
+      <choice value="*">All</choice>
+      <valuePrefix>os_class="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <fieldForLabel>os_class</fieldForLabel>
+      <fieldForValue>os_class</fieldForValue>
+      <search>
+        <query>| inputlookup importantapps.csv | stats count by os_class</query>
+      </search>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Count of Hosts based on Filters</title>
+      <chart>
+        <title>Software=$field1$ | Version=$field3$ | OS Class=$field2$</title>
+        <search>
+          <query>| inputlookup importantapps.csv |eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30)|  search os_class="$field2$" | stats list(*) as * by host | eval status=if(Name LIKE "$field1$", "y","n") | search Version=$field3$| stats sum(eval(if(status="y", "1", "0"))) as "yes", sum(eval(if(status="n", "1","0"))) as "no", count(status) as total | transpose 0 header_field=total column_name=Total</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+      <table>
+        <search>
+          <query>| inputlookup importantapps.csv |eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30)|  search os_class="$field2$" | stats list(*) as * by host | eval status=if(Name LIKE "$field1$", "y","n") | search Version=$field3$| stats sum(eval(if(status="y", "1", "0"))) as "yes", sum(eval(if(status="n", "1","0"))) as "no", count(status) as total | transpose 0 header_field=total column_name=Total</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Table of Software Based on Filters</title>
+      <chart>
+        <title>Software=$field1$ | Version=$field3$ | OS Class=$field2$</title>
+        <search>
+          <query>| inputlookup importantapps.csv | search os_class="$field2$" | search Name="$field1$" AND Version=$field3$  | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) |  chart count over Version by os_class |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+      <table>
+        <search>
+          <query>| inputlookup importantapps.csv | search os_class="$field2$" | search Name="$field1$" AND Version=$field3$  | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) | stats count by Name os_class Version</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Hosts info with Software</title>
+      <table>
+        <title>Software=$field1$ | Version=$field3$ | OS Class=$field2$</title>
+        <search>
+          <query>| inputlookup importantapps.csv | search os_class="$field2$" | search Name="$field1$" AND Version=$field3$  | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) |  eval date=strftime(date,"%F") |stats values(*) as * by host</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts Without Software</title>
+      <table>
+        <title>Software=$field1$ | Version=$field3$ | OS Class=$field2$</title>
+        <search>
+          <query>| inputlookup importantapps.csv | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) | eval date=strftime(date,"%F") | search os_class="$field2$" | stats list(*) as * by host | where NOT LIKE(Name, "$field1$") | stats values(date) as date, values(ip) as ip, values(domain) as domain, values(os_class) as "OS Class" by host</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

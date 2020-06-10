@@ -1,0 +1,182 @@
+<form>
+  <label>(OU) Organizational Unit Lookup</label>
+  <description>Search a Domain or All, then drill down on an OU to determine ous in that particular OU.</description>
+  <fieldset submitButton="true">
+    <input type="multiselect" token="field26" searchWhenChanged="true">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>domain="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>domain</fieldForLabel>
+      <fieldForValue>domain</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv|  search ou1!="n/a" | stats count by domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field39">
+      <label>Top OU</label>
+      <fieldForLabel>ou_t1</fieldForLabel>
+      <fieldForValue>ou_t1</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ | stats count by ou_t1</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">all</choice>
+      <valuePrefix>ou_t1="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field32">
+      <label>Sub OU-1</label>
+      <fieldForLabel>ou_t2</fieldForLabel>
+      <fieldForValue>ou_t2</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ AND  $field39$ | stats count by ou_t2</query>
+      </search>
+      <choice value="*">all</choice>
+      <valuePrefix>ou_t2="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field33">
+      <label>Sub OU-2</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t3</fieldForLabel>
+      <fieldForValue>ou_t3</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ AND $field39$ AND  $field32$ | stats count by ou_t3</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t3="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field34">
+      <label>Sub OU-3</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t4</fieldForLabel>
+      <fieldForValue>ou_t4</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ | stats count by ou_t4</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t4="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field35">
+      <label>Sub OU-4</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t5</fieldForLabel>
+      <fieldForValue>ou_t5</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ | stats count by ou_t5</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t5="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="multiselect" token="field36">
+      <label>Sub OU-5</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t6</fieldForLabel>
+      <fieldForValue>ou_t6</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$| stats count by ou_t6</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t6="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="multiselect" token="field37">
+      <label>Sub OU-6</label>
+      <choice value="*">all</choice>
+      <fieldForLabel>ou_t7</fieldForLabel>
+      <fieldForValue>ou_t7</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | stats count by ou_t7</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>ou_t6="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Count of Hosts in OU</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | table host domain date ip ou1 ou_t1 ou_t2 ou_t3 ou_t4 ou_t5 ou_t6 ou_t7 ou_ou| sort 0 ou1 | rename  ou1 as "Full OU",  ou_t1 as "Top OU", ou_t2 as "Sub OU-1", ou_t3 as "Sub OU-2", ou_t4 as "Sub OU-3", ou_t5 as "Sub OU-4", ou_t6 as "Sub OU-5", ou_t7 as "Sub OU-6" | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Hosts in OU Location</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | table host ou_t1 ou_t2 ou_t3 ou_t4 ou_t5 ou_t6 ou_t7 ou1 | sort 0 ou1 | rename  ou1 as "Full OU",  ou_t1 as "Top OU", ou_t2 as "Sub OU-1", ou_t3 as "Sub OU-2", ou_t4 as "Sub OU-3", ou_t5 as "Sub OU-4", ou_t6 as "Sub OU-5", ou_t7 as "Sub OU-6" |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>General Information on hosts</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | table host date ip os mac sub_subnet tanium_serial tanium_username tanium_virtual | rename sub_subnet as subnet, tanium_serial as serial, tanium_username as last_user, tanium_virtual as virtual</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Additional Drilldown of OU</title>
+      <input type="multiselect" token="field40" searchWhenChanged="true">
+        <label>field40</label>
+        <default>ip</default>
+        <initialValue>ip</initialValue>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | fields * | transpose</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <delimiter> </delimiter>
+      </input>
+      <table>
+        <title>Select Additional fields to see more information on hosts.</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | table host $field40$</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

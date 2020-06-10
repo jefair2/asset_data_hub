@@ -1,0 +1,88 @@
+<form>
+  <label>Patch Phase Search</label>
+  <fieldset submitButton="true">
+    <input type="radio" token="field1" searchWhenChanged="true">
+      <label>Patch Phase</label>
+      <fieldForLabel>column</fieldForLabel>
+      <fieldForValue>column</fieldForValue>
+      <search>
+        <query>| inputlookup patchphase2.csv | table phase*| transpose</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>phase_na</default>
+      <initialValue>phase_na</initialValue>
+    </input>
+    <input type="radio" token="field6">
+      <label>Step #1 [Reboot Type]</label>
+      <fieldForLabel>column</fieldForLabel>
+      <fieldForValue>column</fieldForValue>
+      <search>
+        <query>| inputlookup patchphase2.csv | fields reboot* | transpose</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>reboot_manual</default>
+      <initialValue>reboot_manual</initialValue>
+    </input>
+    <input type="radio" token="field3" searchWhenChanged="true">
+      <label>Step #2 Reboot Type Value (reboot_yes)</label>
+      <fieldForLabel>reboot_manual</fieldForLabel>
+      <fieldForValue>reboot_manual</fieldForValue>
+      <search>
+        <query>| inputlookup patchphase2.csv | stats count by reboot_manual</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <prefix>reboot_yes=</prefix>
+    </input>
+    <input type="text" token="field2">
+      <label>Host Lookup</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Patch Phase Analysis</title>
+      <table>
+        <title>Patch Phase= "$field1$" |  Reboot Status = "$field3$"</title>
+        <search>
+          <query>| inputlookup patchphase2.csv | eval installdate=strptime(installdate, "%F") |  eval _time=installdate | where like(os, "%server%") | search $field1$=yes  |  search $field3$  | stats latest(installdate) as installdate, latest(_time) as _time, latest(checkin) as checkin, latest(domain) as domain, latest(os) as os, latest(installpatch) as installpatch, latest(phase*) as phase*, latest(reboot*) as reboot*, first(tanium_uptime) as uptime by host |eval installdate=strftime(installdate, "%F") |  makemv delim=" " installpatch | table host domain os installdate installpatch uptime reboot* checkin | rename reboot_manual as "Manual Reboot", reboot_no as "No Reboot", reboot_yes as "Reboot" | sort - installdate</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="field2">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Host Lookup General Info</title>
+      <table>
+        <title>$field2$</title>
+        <search>
+          <query>| inputlookup patchphase2.csv | search host="$field2$" | stats first(*) as * by host | table checkin host domain tanium_uptime os phase* reboot* |  rename checkin as "Checkin Date", tanium_uptime as Uptime, os as OS, phase* as "Phase *", reboot_manual as "Reboot Manual", reboot_no as "Reboot No", reboot_yes as "Reboot" | transpose | rename column as Fields, "row 1" as "Info"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">15</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Host Lookup Patches installed</title>
+      <table>
+        <title>$field2$</title>
+        <search>
+          <query>| inputlookup patchphase.csv  | search host="$field2$" | makemv delim=" " installpatch | table installdate installpatch | sort - installdate</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">15</option>
+      </table>
+    </panel>
+  </row>
+</form>

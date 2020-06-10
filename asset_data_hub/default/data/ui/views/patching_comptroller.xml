@@ -1,0 +1,167 @@
+<form>
+  <label>Patching Comptroller</label>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="text" token="field2" searchWhenChanged="true">
+      <label>Days</label>
+      <default>30</default>
+      <initialValue>30</initialValue>
+    </input>
+    <input type="text" token="field1">
+      <label>Host</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Number of Total Hosts</title>
+      <html>
+         <style>
+           .dashboard-row .dashboard-panel .panel-element-row {
+             overflow: auto;
+             max-height: 650px;
+           }
+         </style>
+         </html>
+      <single>
+        <search>
+          <query>| inputlookup patchphase2.csv  |eval _time=strptime(installdate, "%F") | where phase_comp1="yes" AND phase_comp2="yes"| stats dc(host)</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="useColors">0</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Number of Hosts Patched in 30 days or not</title>
+      <chart>
+        <search>
+          <query>| inputlookup patchphase2.csv |eval _time=strptime(installdate, "%F") | eval time=strptime(installdate, "%F") | stats latest(*) as * by host   |makemv delim=" " installpatch | eval days= now() - time | eval days=round(days/86400,0) | eval patched=if(days &lt;$field2$,"Yes","No") | stats count by patched | eventstats sum(count) AS Total | eval percent=round((count/Total)*100,2) | eval patched=count.".".patched.".".percent.""."%"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.seriesColors">[0xd10000,0x2fac02]</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Hosts Patched in that past 30 Days</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv  |eval _time=strptime(installdate, "%F") | eval time=strptime(installdate, "%F") | stats latest(*) as * by host   |makemv delim=" " installpatch | eval days=now() - time |  eval days=round(days/86400,0) | fields - time  | where days &lt; $field2$  |fields days host domain os tanium* reboot_yes installdate free| rename "reboot_yes" as "Auto Reboot", tanium_uptime as "Uptime" | replace "yes" with "Yes", "no" with "No" in "Auto Reboot" | sort days</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">100</option>
+        <option name="drilldown">cell</option>
+        <option name="wrap">false</option>
+        <format type="color" field="days">
+          <colorPalette type="expression">if(value &lt;=$field2$,"#69c100","#d31913")</colorPalette>
+        </format>
+        <format type="color" field="Auto Reboot">
+          <colorPalette type="map">{"No":#d3138d,"Yes":#13d3bf}</colorPalette>
+        </format>
+        <drilldown>
+          <set token="field1">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts Patched beyond past 30 Days</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where msl_agency="comptroller" |eval _time=strptime(installdate, "%F") | eval time=strptime(installdate, "%F") | stats latest(*) as * by host   | makemv delim=" " installpatch | eval days=now() - time |  eval days=round(days/86400,0) | fields - time  | where days &gt; $field2$  |fields days host domain os tanium* reboot_yes installdate free| rename "reboot_yes" as "Auto Reboot", tanium_uptime as "Uptime" | replace "yes" with "Yes", "no" with "No" in "Auto Reboot" | sort days</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">100</option>
+        <option name="drilldown">cell</option>
+        <format type="color" field="days">
+          <colorPalette type="expression">if(value &lt;=$field2$,"#69c100","#d31913")</colorPalette>
+        </format>
+        <format type="color" field="Auto Reboot">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+        <drilldown>
+          <set token="field1">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Host Drilldown Results</title>
+      <table>
+        <title>$field1$</title>
+        <search>
+          <query>| inputlookup patchphase2.csv |search host="$field1$" |  makemv delim=" " installpatch  | sort -installdate | fields - host event os phase* reboot* | table installdate installpatch tanium_uptime</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="wrap">false</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Important Patches by Month</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where msl_agency="comptroller" |eval _time=strptime(installdate, "%F") | eval time=strptime(installdate, "%F") | stats latest(*) as * by host   | makemv delim=" " installpatch |mvexpand installpatch | eval packdate=if(installpatch LIKE "%201%-%%",installpatch,null()) | eval days= now() - time | eval days=round(days/86400,0) | eval time=strftime(time, "%F")   | where isnotnull(packdate) | fields days time host domain os tanium* packdate free| stats values(*) as * by host | sort 0 days | table days time host domain os packdate tanium_uptime free | rename tanium_uptime as "Server Uptime", packdate as "Package Title"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="days">
+          <colorPalette type="list">[#E30C0C,#03D300]</colorPalette>
+          <scale type="threshold">0,30</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Quality Monthly Rollup installed in past 30 days</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where msl_agency="comptroller" |eval _time=strptime(installdate, "%F") | eval time=strptime(installdate, "%F") | stats latest(*) as * by host   | makemv delim=" " installpatch |mvexpand installpatch | eval packdate=if(installpatch LIKE "%201%-%%",installpatch,null()) | eval packdate=trim(packdate) | where isnotnull(packdate) | rex field=packdate "^(?&lt;patchmonth&gt;\d+\-\d+)\s" |  eval quality=if(packdate LIKE "%monthly-quality-rollup%", "Yes","No") 
+ | eval patchmonth=patchmonth."-"."30" |  eval patchmonth2=strptime(patchmonth, "%F") | eval days2= now() - patchmonth2 | eval days2=round(days2/86400,0) | eval qualitymonth=if((quality="Yes" AND days2 &lt; "30"), "Yes", "No")
+| fields - event domain os package package2 phase* patch reboot* tanium* package_title patchmonth* days2 | eval time=strftime(time, "%F") | table host time quality* pack* free | sort 0 - time</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="qualitymonth">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+        <format type="color" field="quality">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Monthly Quality Rollup for Windows Server Status</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where msl_agency="comptroller" |eval _time=strptime(installdate, "%F") | eval time=strptime(installdate, "%F") | stats latest(*) as * by host   | makemv delim=" " installpatch |mvexpand installpatch | eval packdate=if(installpatch LIKE "%201%-%%",installpatch,null()) | eval packdate=trim(packdate) | where isnotnull(packdate) | rex field=packdate "^(?&lt;patchmonth&gt;\d+\-\d+)\s" |  eval quality=if(packdate LIKE "%monthly-quality%", "Yes","No") 
+ | eval patchmonth=patchmonth."-"."30" |  eval patchmonth2=strptime(patchmonth, "%F") | eval days2= now() - patchmonth2 | eval days2=round(days2/86400,0) | eval qualitymonth=if((quality="Yes" AND days2 &lt; "30"), "Yes", "No")
+| fields - event domain os package package2 phase* patch reboot* tanium* package_title patchmonth* days2 | eval time=strftime(time, "%F") | stats values(*) as * by host | eval quality2=if(quality LIKE "Yes","Yes", "No") | eval qualitymonth2=if(qualitymonth LIKE "Yes","Yes", "No") |  fields - quality qualitymonth | table host time quality* | rename quality2 as "Monthly Rollup", qualitymonth2 as "Recent Rollup" | sort 0 - time</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="Monthly Rollup">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+        <format type="color" field="Recent Rollup">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

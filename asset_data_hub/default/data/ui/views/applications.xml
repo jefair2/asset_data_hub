@@ -1,0 +1,161 @@
+<form>
+  <label>Software Lookup</label>
+  <description>Filter By Domain, OS Type, or Specific OS</description>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="text" token="field8">
+      <label>Number of Days</label>
+      <default>7</default>
+      <initialValue>7</initialValue>
+    </input>
+    <input type="multiselect" token="field3">
+      <label>Domain</label>
+      <fieldForLabel>domain</fieldForLabel>
+      <fieldForValue>domain</fieldForValue>
+      <search>
+        <query>| inputlookup applications.csv | stats count by domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>domain="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="multiselect" token="field4" searchWhenChanged="true">
+      <label>Server/Workstation</label>
+      <fieldForLabel>os1</fieldForLabel>
+      <fieldForValue>os1</fieldForValue>
+      <search>
+        <query>| inputlookup applications.csv | stats count by os1</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <delimiter> OR </delimiter>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>os1="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field5">
+      <label>OS</label>
+      <fieldForLabel>os</fieldForLabel>
+      <fieldForValue>os</fieldForValue>
+      <search>
+        <query>| inputlookup applications.csv | stats count by os</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>os="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Specific Software Search</title>
+      <input type="dropdown" token="field2" searchWhenChanged="true">
+        <label>App</label>
+        <fieldForLabel>app2</fieldForLabel>
+        <fieldForValue>app2</fieldForValue>
+        <search>
+          <query>| inputlookup applications.csv |  rex field=app1 max_match=0 "^(?&lt;app&gt;\S+)\s"| stats count by app host |  rex field=app "^(?&lt;app2&gt;\S+)\_\_(?&lt;vers&gt;\S+)" | fields - app | stats count by app2</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <choice value="*">All</choice>
+      </input>
+      <input type="multiselect" token="field6" searchWhenChanged="true">
+        <label>Version</label>
+        <choice value="*">all</choice>
+        <valuePrefix>vers="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+        <fieldForLabel>vers</fieldForLabel>
+        <fieldForValue>vers</fieldForValue>
+        <search>
+          <query>| inputlookup applications.csv |  rex field=app1 max_match=0 "^(?&lt;app&gt;\S+)\s"| stats count by app host |  rex field=app "^(?&lt;app2&gt;\S+)\_\_(?&lt;vers&gt;\S+)" | fields - app | table host app2 vers | search app2="$field2$" | stats count by vers</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <default>*</default>
+        <initialValue>*</initialValue>
+      </input>
+      <single>
+        <search>
+          <query>| inputlookup applications.csv  | eval date=strptime(date,"%F") |  where date &gt;= now()-(60*60*24*$field8$) | fillnull value="n/a" domain os1 os | search $field3$ AND $field4$ AND $field5$ | rex field=app1 max_match=0 "^(?&lt;app&gt;\S+)\s"| stats count by app host |  rex field=app "^(?&lt;app2&gt;\S+)\_\_(?&lt;vers&gt;\S+)" | fields - app | table host app2 vers | search app2="$field2$" AND $field6$ | stats count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+      <table>
+        <title>Select Software, and choose what version to display hosts</title>
+        <search>
+          <query>| inputlookup applications.csv  |  eval date=strptime(date,"%F") |  where date &gt;= now()-(60*60*24*$field8$) | fillnull value="n/a" domain os1 os |search $field3$ AND $field4$ AND $field5$ | rex field=app1 max_match=0 "^(?&lt;app&gt;\S+)\s"| stats count by app host domain date |  rex field=app "^(?&lt;app2&gt;\S+)\_\_(?&lt;vers&gt;\S+)" | fields - app | table date host domain app2 vers | search app2="$field2$" AND $field6$ | sort 0 host | eval date=strftime(date, "%F")</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">row</option>
+        <option name="wrap">false</option>
+        <drilldown>
+          <set token="field1">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Host Search</title>
+      <input type="text" token="field1" searchWhenChanged="true">
+        <label>Host</label>
+        <default></default>
+      </input>
+      <input type="dropdown" token="field7" searchWhenChanged="true">
+        <label>Formatting Display</label>
+        <choice value="| table app vers">Separated Rows</choice>
+        <choice value="table app vers | stats list(app) as app, list(vers) as vers  by host | fields - host">Single Field</choice>
+        <default>| table app vers</default>
+        <initialValue>| table app vers</initialValue>
+      </input>
+      <table>
+        <title>Enter Host in Text above to Search.  Formatting Display can choose for a Singular Table or Each Software Separated</title>
+        <search>
+          <query>| inputlookup applications.csv  |  search host="$field1$"  | rex field=app1 max_match=0 "^(?&lt;app2&gt;\S+)\s" | mvexpand app2 | fields - app1 | rex field=app2 "^(?&lt;app&gt;\S+)\_\_(?&lt;vers&gt;\S+)" | fields - app2 | sort 0 app | table host domain date ip os os1| stats first(*) as * by host | transpose | rename column as Fields, "row 1" as Info</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+      <table>
+        <search>
+          <query>| inputlookup applications.csv  |  search host="$field1$" | rex field=app1 max_match=0 "^(?&lt;app2&gt;\S+)\s" | mvexpand app2 | fields - app1 | rex field=app2 "^(?&lt;app&gt;\S+)\_\_(?&lt;vers&gt;\S+)" | fields - app2 | sort 0 app  $field7$</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">25</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Large Application Search</title>
+      <table>
+        <title>Select From 3 Fields above, Domain, Operating System or Computer type and provide back the host and all the software on the host.</title>
+        <search>
+          <query>| inputlookup applications.csv  | eval date=strptime(date,"%F") |  where date &gt;= now()-(60*60*24*$field8$) | search  $field3$ AND $field4$ AND $field5$ | rex field=app1 max_match=0 "^(?&lt;app2&gt;\S+)\s" | mvexpand app2 | fields - app1 |stats values(*) as * by host |  rex field=app2 "^(?&lt;app&gt;\S+)\_\_(?&lt;vers&gt;\S+)"  | fields - app2 | eval date=strftime(date,"%F") | table host app vers domain date ip os os1 |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">1</option>
+        <option name="drilldown">none</option>
+        <option name="wrap">false</option>
+      </table>
+    </panel>
+  </row>
+</form>

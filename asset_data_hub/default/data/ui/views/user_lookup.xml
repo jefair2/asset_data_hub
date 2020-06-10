@@ -1,0 +1,212 @@
+<form theme="dark">
+  <label>User Lookup</label>
+  <description>Search by Lastname, Firstname  OR Email address OR EDIPI.</description>
+  <search id="bc">
+    <query>
+      `network_index` sourcetype=bluecoat* user=$field28$ | stats count
+    </query>
+    <earliest>0</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="bc_exist"></unset>
+        <set token="bc_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="bc_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <search>
+    <query>`hbss_dlp` | rex field=username "\\\(?&lt;user&gt;.*)" | search user=$field28$| stats count
+    </query>
+    <earliest>0</earliest>
+    <latest>now</latest>
+    <done>
+      <condition match="$result.count$&gt;0">
+        <unset token="dlp_exist"></unset>
+        <set token="dlp_exist">$result.count$</set>
+      </condition>
+      <condition>
+        <unset token="dlp_exist"></unset>
+      </condition>
+    </done>
+  </search>
+  <fieldset submitButton="true" autoRun="false"></fieldset>
+  <row>
+    <panel>
+      <title>Enter User information. Make sure to click Submit at the Top, Make sure to enter "*" in any blank field searches.</title>
+      <input type="text" token="field1" searchWhenChanged="true">
+        <label>Lastname</label>
+      </input>
+      <input type="text" token="field24" searchWhenChanged="true">
+        <label>First Name</label>
+        <default>*</default>
+      </input>
+      <input type="text" searchWhenChanged="true" token="field29">
+        <label>EDIPI</label>
+        <default>*</default>
+      </input>
+      <input type="text" token="field27" searchWhenChanged="true">
+        <label>Email</label>
+        <default>*</default>
+      </input>
+      <input type="text" token="field30" searchWhenChanged="true">
+        <label>SAM</label>
+        <default>*</default>
+      </input>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Name search</title>
+      <table>
+        <title>Click for Drilldown</title>
+        <search>
+          <query>| inputlookup user_list_main.csv | fillnull value="N/A" user_upn user_uid user_email user_firstname user_lastname user_sam | search user_lastname="$field1$*" AND user_firstname="$field24$*"   | search user_upn=$field29$* OR user_uid=$field29$*| search user_email=$field27$ |search user_sam=$field30$* |dedup user_fullname | table user_fullname  | rename user_fullname as Fullname</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="field25">$click.value$</set>
+        </drilldown>
+      </table>
+      <table>
+        <title>Click for Specifics on Account</title>
+        <search>
+          <query>| inputlookup user_list_main.csv | search user_fullname="*$field25$*" | table user_sam user_domain user_upn</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="field28">$click.value$</set>
+          <set token="field31">$row.user_domain$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel depends="$bc_exist$">
+      <title>By Domain</title>
+      <chart>
+        <search>
+          <query>`network_index` sourcetype=bluecoat* user=$field28$
+| fields cs_host
+| rex field=cs_host "(?&lt;Domain&gt;[^\.0-9]+)$"
+| stats count by Domain</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel depends="$bc_exist$">
+      <title>Sites Visited &gt;= 1% of the time</title>
+      <chart>
+        <search>
+          <query>`network_index` sourcetype=bluecoat* user=$field28$ category!="Content Delivery Networks" category!="*Web Infrastructure*"
+| fields cs_host uri_path _time
+| stats count by cs_host</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row depends="$dlp_exist$">
+    <panel>
+      <title>HBSS DLP Event</title>
+      <table>
+        <search>
+          <query>`hbss_dlp`
+| rex field=username "\\\(?&lt;user&gt;.*)"
+| search user=$field28$
+| table Time TimeZone username UserGroups Workstation_Name SourceApp Size ProductId VendorId Rules Filename ApplicationFilename
+| sort 0 - Time</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>General Information</title>
+      <table>
+        <title>$field28$</title>
+        <search>
+          <query>| inputlookup append=true user_list_main.csv 
+| replace "1" with "YES", "0" with "NO" in user_admin user_cac user_disabled user_passexpire user_service 
+| search user_sam="$field28$" AND user_domain="$field31$" 
+| table user_fullnamex user_admin user_cac user_disabled user_email user_dn1 user_lastlogon1 user_upn user_passexpire user_uid user_sam user_home user_company user_dept user_room user_printer 
+| fillnull value="N/A" user_fullnamex user_admin user_cac user_disabled user_email user_dn1 user_lastlogon1 user_upn user_passexpire user_uid user_sam user_home user_company user_dept user_room user_printer
+| rename user_fullnamex as Domain.Name, user_admin as Privileged, user_cac as "CAC enforced", user_disabled as Disabled, user_email as Email, user_dn1 as OU, user_lastlogon1 as LastLogon, user_upn as UPN, user_passexpire as Expire_Password, user_uid as UID, user_sam as SAM, user_home as Home_Directory, user_company as Company, user_dept as Department, user_room as Room, user_printer as Printer 
+|  transpose column_name=Info 
+| rename "row 1" as Details</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel depends="$bc_exist$">
+      <title>Bluecoat Activity for $field28$ (High Level)</title>
+      <table>
+        <search>
+          <query>`network_index` sourcetype=bluecoat* user=$field28$ category!="Content Delivery Networks" category!="*Web Infrastructure*"
+| fields cs_host uri_path _time
+| rex field=cs_host "(?&lt;Domain&gt;(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[^\.]+\.[^\.]+$))"
+| stats latest(_time) as Date values(cs_host) as URL values(uri_path) as URI by Domain
+| eval Date=strftime(Date,"%F")
+| sort - Date
+| table Date Domain URL</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$bc_exist$">
+    <panel>
+      <title>Bluecoat Data - Last 100 Events (Details)</title>
+      <table>
+        <search>
+          <query>`network_index` sourcetype=bluecoat* user=*$field28$* category!="Content Delivery Networks" category!="*Web Infrastructure*"
+| head 100
+| table date, time, duration, category, user, http_method, c_ip,cs_host uri_path, uri_query, http_content_type, http_user_agent
+| rename date as Date, time as Time, duration as Duration, category as Category, user as User, http_method as "HTTP Method", c_ip AS "Client IP", http_content_type as "HTTP Content Type", http_user_agent as "HTTP User Agent"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,134 @@
+<form>
+  <label>Subnet Lookup</label>
+  <fieldset submitButton="true"></fieldset>
+  <row>
+    <panel>
+      <title>Hosts in IP range ($field1$.X)</title>
+      <input type="text" token="field1" searchWhenChanged="true">
+        <label>Enter 1-3 Octets. EX. 123.456.789</label>
+      </input>
+      <input type="text" token="field24" searchWhenChanged="true">
+        <label>Subnet</label>
+        <fieldForLabel>Subnet</fieldForLabel>
+        <fieldForValue>Subnet</fieldForValue>
+        <delimiter> </delimiter>
+      </input>
+      <table>
+        <title>Click to drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search ip="$field1$.*" | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*3)|  rex max_match=0 field=ip "(?&lt;sub2&gt;\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})" | mvexpand sub2 | rex max_match=0 field=sub_subnet "(?&lt;sub_sub&gt;\S+)" | mvexpand sub_sub | search sub2="$field1$*" | eval sub_sub2=case(cidrmatch(sub_sub, sub2), sub_sub) | dedup host | stats count by sub_sub2  | rename sub_sub2 as Subnet | sort 0 - count</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <drilldown>
+          <set token="field24">$click.value$</set>
+        </drilldown>
+      </table>
+      <table>
+        <search>
+          <query>| inputlookup asset_sub.csv | search Subnet=$field24$ | table Subnet Location VLAN vrf</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Subnet Filter search.</title>
+      <input type="radio" token="field8" searchWhenChanged="false">
+        <label>Step #1 - Search By Field</label>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |  table sub* domain | rename "sub_location" as "Location", sub_vlan as "VLAN", sub_vrf as "VRF", sub_subnet as "Subnet", domain as Domain | transpose | table column</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>Domain</default>
+        <initialValue>Domain</initialValue>
+      </input>
+      <input type="dropdown" token="field9" searchWhenChanged="false">
+        <label>Step #2 - Filter by  Value</label>
+        <fieldForLabel>fieldx</fieldForLabel>
+        <fieldForValue>fieldx</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |  rename "sub_location" as "Location", sub_vlan as "VLAN", sub_vrf as "VRF", sub_subnet as "Subnet", domain as "Domain" |  rex max_match=0 field="$field8$"  "(?&lt;fieldx&gt;\S+)"  | mvexpand fieldx | stats count by fieldx</query>
+        </search>
+      </input>
+      <input type="radio" token="field10" searchWhenChanged="false">
+        <label>Step #3 - Select Data to be returned</label>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |  table sub* domain | rename "sub_location" as "Location", sub_vlan as "VLAN", sub_vrf as "VRF", sub_subnet as "Subnet", domain as "Domain" | transpose | table column</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </input>
+      <input type="multiselect" token="field25" searchWhenChanged="true">
+        <label>Additional Nodes of Information</label>
+        <fieldForLabel>Fields</fieldForLabel>
+        <fieldForValue>Fields</fieldForValue>
+        <search>
+          <query>| inputlookup asset_sub.csv | fields - $field10$ | transpose column_name=Fields |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <delimiter> </delimiter>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <initialValue>*</initialValue>
+      </input>
+      <table>
+        <title>$field8$=$field9$ |  Dataset=$field10$  | Click To drilldownn for hosts Per field</title>
+        <search>
+          <query>| inputlookup asset_list.csv |  rename "sub_location" as "Location", sub_vlan as "VLAN", sub_vrf as "VRF", sub_subnet as "Subnet", domain as "Domain" |  search "$field8$"="$field9$" | rex max_match=0 field="$field10$"  "(?&lt;fieldx&gt;\S+)"  | mvexpand fieldx | dedup fieldx | fields Location VLAN VRF Subnet Domain fieldx | table fieldx $field25$ | rename fieldx as "$field10$" | fields - $field8$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <set token="field39">$click.name2$</set>
+          <set token="field30">$click.value2$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Hosts found in past 30 days by Subnet</title>
+      <table>
+        <title>Hosts by Subnet ($sub$)</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search sub_subnet="$field24$*" | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | table host domain date ip  | rename sub_location as "Subnet Location", sub_subnet as "Subnet", sub_vlan as VLAN, sub_vrf as VRF  | eval date=strftime(date,"%F")  |sort 0 - date</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <drilldown>
+          <set token="field1">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts Based on additional search</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv | rename "sub_location" as "Location", sub_vlan as "VLAN", sub_vrf as "VRF", sub_subnet as "Subnet", domain as "Domain" | search $field39$=$field30$ | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+      <table>
+        <title>$field39$ = $field30$</title>
+        <search>
+          <query>| inputlookup asset_list.csv | rename "sub_location" as "Location", sub_vlan as "VLAN", sub_vrf as "VRF", sub_subnet as "Subnet", domain as "Domain" | search $field39$=$field30$ | table host Domain date ip    |sort 0 - date</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,70 @@
+<form>
+  <label>CIO Application Info Sample Visio</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="field1" searchWhenChanged="true">
+      <label></label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Visio Versions Count(from Tanium)</title>
+      <table>
+        <search>
+          <query>index=tanium Question_Name="Splunk-Computer-Name-and-Installed-Applications" Visio NOT Viewer NOT "Add-in"  | stats dc(Computer_Name) by Name | addcoltotals labelfield=Name</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Visio Process Runs (from Event Logs)</title>
+      <table>
+        <search>
+          <query>eventtype="wineventlog_windows" index=wineventlog sourcetype="WinEventLog:Security" TaskCategory="Process Creation" SourceName="Microsoft Windows security auditing." EventCode="4688" Type="Information" visio New_Process_Name="*visio.exe*" | eval Stime = strftime(_time,"%m/%d/%Y"), date=strftime(_time,"%F") | stats dc(host) by New_Process_Name | addcoltotals labelfield=New_Process_Name</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>0</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Visio Usage by Machine and User(from Event Logs)</title>
+      <table>
+        <search>
+          <query>eventtype="wineventlog_windows" index=wineventlog sourcetype="WinEventLog:Security" TaskCategory="Process Creation" SourceName="Microsoft Windows security auditing." EventCode="4688" Type="Information" visio New_Process_Name="*visio.exe*" | eval Stime = strftime(_time,"%m/%d/%Y"), date=strftime(_time,"%F") | stats dc(date) as days latest(Stime) as LastDate by Account_Name host New_Process_Name | search Account_Name!="-" Account_Name!="*$"</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

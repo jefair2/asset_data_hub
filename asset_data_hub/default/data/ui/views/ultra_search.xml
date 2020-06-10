@@ -1,0 +1,395 @@
+<form>
+  <label>Main Lookup</label>
+  <fieldset submitButton="true" autoRun="false"></fieldset>
+  <row>
+    <panel>
+      <title>Filter By Field</title>
+      <input type="multiselect" token="field6" searchWhenChanged="false">
+        <label>Domain (ex. rsrc.osd.mil)</label>
+        <choice value="*">All</choice>
+        <fieldForLabel>domain</fieldForLabel>
+        <fieldForValue>domain</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | where os_class="server" | stats count by domain | sort - count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>*</default>
+        <delimiter> OR </delimiter>
+        <valuePrefix>domain=</valuePrefix>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field100">
+        <label>Device Type (ex. Server)</label>
+        <fieldForLabel>os_class</fieldForLabel>
+        <fieldForValue>os_class</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | dedup os_class | table os_class</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <valuePrefix>os_class=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field105">
+        <label>OS VDI (yes/no)</label>
+        <choice value="*">All</choice>
+        <fieldForLabel>os_vdi</fieldForLabel>
+        <fieldForValue>os_vdi</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv  | search $field100$ | stats count by os_vdi</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>*</default>
+        <valuePrefix>os_vdi=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field12">
+        <label>VDI Notes (ex. jsp win 10)</label>
+        <choice value="*">All</choice>
+        <fieldForLabel>os_notes</fieldForLabel>
+        <fieldForValue>os_notes</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | stats count by os_notes</query>
+        </search>
+        <default>*</default>
+        <valuePrefix>os_notes="</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+        <valueSuffix>"</valueSuffix>
+      </input>
+    </panel>
+    <panel>
+      <title>Time Range Picker</title>
+      <input type="text" token="field23" searchWhenChanged="false">
+        <label>Last # of days.</label>
+        <default>30</default>
+        <initialValue>30</initialValue>
+      </input>
+      <input type="text" token="field53">
+        <label>Before # of days</label>
+        <default>0</default>
+      </input>
+      <input type="radio" token="field24" searchWhenChanged="false">
+        <label>After Date</label>
+        <default>[object Object]</default>
+        <fieldForLabel>date</fieldForLabel>
+        <fieldForValue>date</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | dedup date | sort date | head 1 | eval date=strftime(date,"%F") | table date</query>
+        </search>
+      </input>
+      <input type="radio" token="field25">
+        <label>Before Date</label>
+        <fieldForLabel>date</fieldForLabel>
+        <fieldForValue>date</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | dedup date | sort date | tail 1 | eval date=strftime(date,"%F") | table date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </input>
+    </panel>
+    <panel>
+      <title>OS Breakdown.  "n" represents blank</title>
+      <input type="multiselect" token="field1">
+        <label>OS type (ex.windows)</label>
+        <fieldForLabel>os_type</fieldForLabel>
+        <fieldForValue>os_type</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | stats count by os_type</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <valuePrefix>os_type=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field5">
+        <label>Model (ex.standard,enterprise)</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>os_model</fieldForLabel>
+        <fieldForValue>os_model</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field1$ | stats count by os_model</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <valuePrefix>os_model=</valuePrefix>
+        <delimiter>OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field26">
+        <label>OS Linux (ex redhat, sunos)</label>
+        <choice value="*">All</choice>
+        <initialValue>*</initialValue>
+        <fieldForLabel>os_linux</fieldForLabel>
+        <fieldForValue>os_linux</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv  | search os_type="*linux*" | stats count by os_linux</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>*</default>
+        <valuePrefix>os_linux=</valuePrefix>
+        <delimiter>OR </delimiter>
+      </input>
+      <input type="multiselect" token="field2" searchWhenChanged="false">
+        <label>Version ( ex. 2008, Win 7)</label>
+        <fieldForLabel>os_vers</fieldForLabel>
+        <fieldForValue>os_vers</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field1$ | stats count by os_vers</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <valuePrefix>os_vers=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field3">
+        <label>Release (R2)</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>os_release</fieldForLabel>
+        <fieldForValue>os_release</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field1$ | eval os_release=if(isnull(os_release), "naked", os_release) | stats count by os_release</query>
+        </search>
+        <valuePrefix>os_release=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field4">
+        <label>Service Pack (ex. sp1)</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>os_pack</fieldForLabel>
+        <fieldForValue>os_pack</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | search $field1$ | stats count by os_pack</query>
+        </search>
+        <valuePrefix>os_pack=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="field101">
+        <label>OS Function (ex. desktop, laptop)</label>
+        <choice value="*">All</choice>
+        <fieldForLabel>os_func</fieldForLabel>
+        <fieldForValue>os_func</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | stats count by os_func</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>*</default>
+        <valuePrefix>os_func=</valuePrefix>
+        <delimiter> OR </delimiter>
+        <initialValue>*</initialValue>
+      </input>
+    </panel>
+    <panel>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) |  fillnull value=" " | search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$ $field105$ $field101$ $field12$ | stats count  | eval date=strftime(date,"%F")  | sort 0 - count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Sum By Field and Value.  Both Must be filled out.</title>
+      <input type="dropdown" token="field103">
+        <label>Fields</label>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | fields * | transpose</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+      </input>
+      <input type="multiselect" searchWhenChanged="true" token="field104">
+        <label>Field Values</label>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | fillnull value="0" | dedup "$field103$" | table "$field103$" | rename $field103$ AS "column"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <initialValue>*</initialValue>
+        <valuePrefix>$field103$="</valuePrefix>
+        <delimiter> </delimiter>
+        <valueSuffix>"</valueSuffix>
+      </input>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | fillnull value=0 | search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$  $field105$ $field101$ $field12$ | search $field104$ | eval date=strftime(date,"%F") | stats count(host) as Sum | replace "1" with "Yes", "0" with "No" in $field103$ |</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Count of search BY* Field chosen</title>
+      <input type="dropdown" token="field106" searchWhenChanged="true">
+        <label>Count by Field</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | fields * | transpose</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </input>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | fillnull value=null |search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$  $field105$ $field101$ $field12$ | stats count by $field106$ | eval date=strftime(date,"%F") | replace "1" with "Yes", "0" with "No" in $field106$ | sort 0 - count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Table #1. Results from Initial Search</title>
+      <input type="text" token="field122">
+        <label>Dashboard Balance</label>
+        <default>DO NOT ENTER</default>
+      </input>
+      <table>
+        <title>Click to Drilldown and go to Host Page.</title>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | fillnull value=" " | search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$ $field105$ $field101$ $field12$  | table host domain date os ip mac sub_subnet "tanium_username" | eval date=strftime(date,"%F") | sort  0 - date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field1=$click.value$</link>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Table #2. Results from Initial Search.  Choose Dropdowns for search with Specific Values</title>
+      <input type="dropdown" token="field107">
+        <label>Easy Filter by Data source</label>
+        <choice value="*">All</choice>
+        <fieldForLabel>Tool</fieldForLabel>
+        <fieldForValue>Tool</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30)| eval date=strftime(date,"%F") | table acas dhcp hbss msl security splunk sub sccm  tanium  | transpose | table column | rename column as "Tool" |</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>*</default>
+      </input>
+      <input type="dropdown" token="field11" searchWhenChanged="true">
+        <label>Additional Fields of Search</label>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |  fields - os* domain host *date* | fields "$field107$*" | transpose | table column</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+      </input>
+      <input type="dropdown" token="field14" searchWhenChanged="true">
+        <label>* Values</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv| fields $field11$ | fillnull value="0" | dedup $field11$ | transpose | transpose | rename "row 1" as column</query>
+        </search>
+      </input>
+      <table>
+        <title>Click to Drilldown and go to Host Page.</title>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | fillnull value="0" | search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$ $field105$ $field101$ $field12$ | search $field11$="$field14$*" | table host domain date os ip mac sub_subnet "tanium_username" $field11$ | eval date=strftime(date,"%F")  | sort 0 - date | replace "1" with "Yes",  "0" with "No" in $field11$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field1=$click.value$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Table #1 additional Fields</title>
+      <input type="multiselect" token="field120" searchWhenChanged="true">
+        <label>Multi-select Fields</label>
+        <delimiter> </delimiter>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |  fields - mac ip domain host  | fields *  | transpose | table column</query>
+        </search>
+      </input>
+      <table>
+        <title>Additional Fields on search</title>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$)  | fillnull value=" " |  search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$ $field105$ $field101$ $field12$ | table host date ip  $field120$ | eval date=strftime(date,"%F") | sort 0 - date | replace "1" with "Yes",  "0" with "No" in $field120$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field1=$click.value$</link>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Table #2 Additional Fields</title>
+      <input type="multiselect" token="field121" searchWhenChanged="true">
+        <label>Multi-select Fields</label>
+        <fieldForLabel>column</fieldForLabel>
+        <fieldForValue>column</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |  fields -  mac ip domain host  | fields *  | transpose | table column</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <delimiter> </delimiter>
+      </input>
+      <table>
+        <title>Click to Drilldown and go to Host Page.</title>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*$field23$) AND date &lt;= now()-(60*60*24*$field53$) | fillnull value=" " | search $field6$ $field100$ $field26$ $field1$ $field2$ $field3$ $field4$ $field5$ $field105$ $field101$ $field12$| search $field11$="$field14$*" | table host date ip $field11$ $field121$ | eval date=strftime(date,"%F")  | sort 0- date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field1=$click.value$</link>
+        </drilldown>
+        <option name="count">21</option>
+        <option name="drilldown">none</option>
+        <format type="color" field="os_linux">
+          <colorPalette type="list">[#65A637,#6DB7C6,#F7BC38,#F58F39,#D93F3C]</colorPalette>
+          <scale type="threshold">0,30,70,100</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

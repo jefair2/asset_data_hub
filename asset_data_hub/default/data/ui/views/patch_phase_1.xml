@@ -1,0 +1,166 @@
+<form>
+  <label>Patch Phase 1</label>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="text" token="field2" searchWhenChanged="true">
+      <label>Days</label>
+      <default>30</default>
+      <initialValue>30</initialValue>
+    </input>
+    <input type="text" token="field1">
+      <label>Host</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Number of Total Hosts</title>
+      <html>
+         <style>
+           .dashboard-row .dashboard-panel .panel-element-row {
+             overflow: auto;
+             max-height: 650px;
+           }
+         </style>
+         </html>
+      <single>
+        <search>
+          <query>| inputlookup patchphase2.csv |  where phase_1="yes"  | eval time=time." "." " | rex field=time max_match=0 "^(?&lt;time&gt;\d+\-\d+\-\d+)\s" | mvexpand time| eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host |  makemv delim=" " package | makemv delim=";" package_title  | sort 0 - time  | stats dc(host)</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="useColors">0</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Number of Hosts Patched in 30 days or not</title>
+      <chart>
+        <search>
+          <query>| inputlookup patchphase2.csv | where phase_1="yes"  | eval time=time." "." " | rex field=time max_match=0 "^(?&lt;time&gt;\d+\-\d+\-\d+)\s" | mvexpand time |  eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host | eval days= now() - time | eval days=round(days/86400,0) | eval patched=if(days &lt;$field2$,"Yes","No") | stats count by patched | eventstats sum(count) AS Total | eval percent=round((count/Total)*100,2) | eval patched=count.".".patched.".".percent.""."%" </query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.seriesColors">[0xd10000,0x2fac02]</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Hosts Patched in that past 30 Days</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where phase_1="yes"  | eval time=time." "." " | rex field=time max_match=0 "^(?&lt;time&gt;\d+\-\d+\-\d+)\s" | mvexpand time | eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host |  makemv delim=" " package | makemv delim=";" package_title  | sort 0 - time  | eval days= now() - time | eval days=round(days/86400,0) | eval time=strftime(time, "%F")  | where days &lt; $field2$  |fields days time host domain os tanium* reboot_yes free| rename "reboot_yes" as "Auto Reboot", tanium_uptime as "Uptime" | replace "yes" with "Yes", "no" with "No" in "Auto Reboot"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">100</option>
+        <option name="drilldown">cell</option>
+        <option name="wrap">false</option>
+        <format type="color" field="days">
+          <colorPalette type="expression">if(value &lt;=$field2$,"#69c100","#d31913")</colorPalette>
+        </format>
+        <format type="color" field="Auto Reboot">
+          <colorPalette type="map">{"No":#d3138d,"Yes":#13d3bf}</colorPalette>
+        </format>
+        <drilldown>
+          <set token="field1">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts Patched beyond past 30 Days</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where phase_1="yes"  | eval time=time." "." " | rex field=time max_match=0 "^(?&lt;time&gt;\d+\-\d+\-\d+)\s" | mvexpand time | eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host |  makemv delim=" " package | makemv delim=";" package_title | sort 0 - time  | eval days= now() - time | eval days=round(days/86400,0) | eval time=strftime(time, "%F")  | where days &gt; $field2$  |fields days time host domain os tanium* reboot_yes free| rename "reboot_yes" as "Auto Reboot", tanium_uptime as "Uptime" | replace "yes" with "Yes", "no" with "No" in "Auto Reboot"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">100</option>
+        <option name="drilldown">cell</option>
+        <format type="color" field="days">
+          <colorPalette type="expression">if(value &lt;=$field2$,"#69c100","#d31913")</colorPalette>
+        </format>
+        <format type="color" field="Auto Reboot">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+        <drilldown>
+          <set token="field1">$row.host$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Host Drilldown Results</title>
+      <table>
+        <title>$field1$</title>
+        <search>
+          <query>| inputlookup patchphase2.csv |search host="$field1$" |  makemv delim=" " package | makemv delim=";" package_title | sort -time | fields - host event os patch phase* reboot* | table time package package_title tanium_uptime free</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="wrap">false</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Important Patches by Month</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where phase_1="yes"  | eval time=time." "." " | rex field=time max_match=0 "^(?&lt;time&gt;\d+\-\d+\-\d+)\s" | mvexpand time |  eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host  |  rex max_match=0 field=package_title "^(?&lt;package2&gt;.*?)\;"   | mvexpand package2 |   eval packdate=if(package2 LIKE "%201%-%%",package2,null()) | eval days= now() - time | eval days=round(days/86400,0) | eval time=strftime(time, "%F")   | where isnotnull(packdate) | fields days time host domain os tanium* packdate free| stats values(*) as * by host | sort 0 days | table days time host domain os packdate tanium_uptime free | rename tanium_uptime as "Server Uptime", packdate as "Package Title"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="days">
+          <colorPalette type="list">[#E30C0C,#03D300]</colorPalette>
+          <scale type="threshold">0,30</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where phase_1="yes" |  eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host  |  rex max_match=0 field=package_title "^(?&lt;package2&gt;.*?)\;|\s+"   | mvexpand package2 |   eval packdate=if(package2 LIKE "%201%-%%",package2,null()) |  eval packdate=trim(packdate) | where isnotnull(packdate) | rex field=packdate "^(?&lt;patchmonth&gt;\d+\-\d+)\s" |  eval quality=if(packdate LIKE "%Quality Rollup for Windows%", "Yes","No") 
+ | eval patchmonth=patchmonth."-"."30" |  eval patchmonth2=strptime(patchmonth, "%F") | eval days2= now() - patchmonth2 | eval days2=round(days2/86400,0) | eval qualitymonth=if((quality="Yes" AND days2 &lt; "30"), "Yes", "No")
+| fields - event domain os package package2 phase* patch reboot* tanium* package_title patchmonth* days2 | eval time=strftime(time, "%F") | table host time quality* pack* free | sort 0 - time</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="qualitymonth">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+        <format type="color" field="quality">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Monthly Quality Rollup for Windows Server Status</title>
+      <table>
+        <search>
+          <query>| inputlookup patchphase2.csv | where phase_1="yes" |  eval time=strptime(time, "%F") | rex field=time "^(?&lt;_time&gt;\d+)\.\d+" | stats latest(*) as * by host  |  rex max_match=0 field=package_title "^(?&lt;package2&gt;.*?)\;|\s+"   | mvexpand package2 |   eval packdate=if(package2 LIKE "%201%-%%",package2,null()) |  eval packdate=trim(packdate) | where isnotnull(packdate) | rex field=packdate "^(?&lt;patchmonth&gt;\d+\-\d+)\s" |  eval quality=if(packdate LIKE "%Quality Rollup for Windows%", "Yes","No") 
+ | eval patchmonth=patchmonth."-"."30" |  eval patchmonth2=strptime(patchmonth, "%F") | eval days2= now() - patchmonth2 | eval days2=round(days2/86400,0) | eval qualitymonth=if((quality="Yes" AND days2 &lt; "30"), "Yes", "No")
+| fields - event domain os  package package2 phase* patch reboot* tanium* package_title patchmonth* days2 packdate | eval time=strftime(time, "%F") | stats values(*) as * by host | eval quality2=if(quality LIKE "Yes","Yes", "No") | eval qualitymonth2=if(qualitymonth LIKE "Yes","Yes", "No") |  fields - quality qualitymonth | table host time quality* free| rename quality2 as "Monthly Rollup", qualitymonth2 as "Recent Rollup" | sort 0 - date</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="Monthly Rollup">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+        <format type="color" field="Recent Rollup">
+          <colorPalette type="map">{"No":#E30C0C,"Yes":#03D300}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

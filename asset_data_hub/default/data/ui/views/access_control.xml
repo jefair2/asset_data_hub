@@ -1,0 +1,192 @@
+<dashboard theme="dark">
+  <label>Risk Management Framework: Proof of Concept</label>
+  <row>
+    <panel>
+      <title>RMF Controls failed by Host based on automated STIG checks, this is proof of concept only, Splunk Technology Add-On for xccdf parsing still under construction</title>
+      <table>
+        <title>CM-6 Configuration Settings: Currently, this will only work on Linux</title>
+        <search>
+          <query>index="n_cy_compliance" sourcetype="disa:xccdf" 
+| where like(result,"fail")
+| rex field=fixtext "(?&lt;stig_id&gt;DISA-STIG-[^\n\r]+)"
+| rex field=host "(?&lt;host&gt;[^\.]+)"
+| rex max_match=10 field=fixtext "(?&lt;rmf_control&gt;NIST-800-53[^\n\r]+)"
+| mvexpand rmf_control
+| dedup rmf_control
+| stats latest(_time) as _time values(rmf_control) as "RMF Control" values(stig_id) as "STIG ID" by result,host
+| table _time, host, "RMF Control" "STIG ID" result</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>AC-2(3) - The information system automatically disables inactive accounts after not to exceed ninety (90) days: Active Directory Data</title>
+      <single>
+        <title>Compliance (Pass or Fail)</title>
+        <search>
+          <query>| inputlookup user_list_main.csv
+| eval rel_date=now()-7776000
+| eval lastlogon=strptime(user_lastlogon1,"%F")
+| where lastlogon &lt; rel_date AND user_disabled!=1
+| table user_lastlogon1 user_fullname user_upn user_dn1
+| stats count
+| eval comply=if(count&gt;0,"Fail", "Pass")
+| table comply</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">0</option>
+      </single>
+      <single>
+        <title>Total count of users that have active accounts over 90 days from last AD login</title>
+        <search>
+          <query>| inputlookup user_list_main.csv
+| eval rel_date=now()-7776000
+| eval lastlogon=strptime(user_lastlogon1,"%F")
+| where lastlogon &lt; rel_date AND user_disabled!=1
+| table user_lastlogon1 user_fullname user_upn user_dn1
+| stats count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+      <table>
+        <title>List of users that have active accounts over 90 days from the last AD login</title>
+        <search>
+          <query>| inputlookup user_list_main.csv
+| eval rel_date=now()-7776000
+| eval lastlogon=strptime(user_lastlogon1,"%F")
+| where lastlogon &lt; rel_date AND user_disabled!=1
+| rename user_lastlogon1 as "Last Login" user_fullname as "Full Name" user_upn as "CAC ID" user_dn1 as "AD Distinguished Name"
+| sort 0 "Last Login"
+| table "Last Login" "Full Name" "CAC ID" "AD Distinguished Name"</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>AU-4(1) The information system off-loads audit records immediately onto a different system or media than the system being audited</title>
+      <single>
+        <title>Total count of hosts being audited by Splunk</title>
+        <search>
+          <query>| inputlookup asset_list.csv
+| where splunk=1
+| stats count(host)</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>AU-4(1)</title>
+      <table>
+        <title>Table of All hosts not being directly audited by Splunk</title>
+        <search>
+          <query>| inputlookup asset_list.csv
+| where isnull(splunk)
+| fields host
+| table host</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>SI-3 Malicious Code Protection</title>
+      <table>
+        <title>Compliance</title>
+        <search>
+          <query>`compliance_index` sourcetype=mcafee:epo product="McAfee Endpoint Security" detection_method!="" 
+| stats values(detection_method) as detection_method
+| mvexpand detection_method
+| eval "SC-3(1)"=if(isnotnull(detection_method),"Pass","")
+| eval "SC-3(7)"=case(detection_method LIKE "Exploit Prevention", "Pass", detection_method LIKE "Self Protection", "Pass", 1==1, "")
+| rename detection_method as "Detection Method"
+| join type=outer "Detection Method" [search `compliance_index` sourcetype=mcafee:epo product="McAfee Endpoint Security" event_description="Access Protection rule violation detected and blocked"
+| stats count as total by detection_method
+| eval "SC-3(8)"=if(total&gt;0,"Pass","Fail")
+| fields - total
+| rename detection_method as "Detection Method"]</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <html tokens="true" encoded="true">
+         <![CDATA[
+         <br/>
+        ]]>
+      </html>
+    </panel>
+    <panel>
+      <title>SI-3 Malicious Code Protection</title>
+      <table>
+        <title>Compliance</title>
+        <search>
+          <query>`compliance_index` sourcetype=mcafee:epo product="McAfee Endpoint Security" category="ops.update.end"
+| stats values(severity) as "Severity" by category
+| eval "SC-3(2)"=if(Severity=="Informational", "Pass","Fail")</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>SI-3 for Windows Systems, use tool comparison to determine if all Active Directory hosts that are Windows are being monitored in HBSS</title>
+        <search>
+          <query>`compliance_index` sourcetype=mcafee:epo product="McAfee Endpoint Security"  (detection_method=*Scan* OR detection_method="Exploit Prevention" OR detection_method="Self Protection")
+| table timestamp,timezone,user,dest_dns,detection_method,file_name,threat_type,signature,signature_id</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>SI-2(5) FLAW REMEDIATION | AUTOMATIC SOFTWARE / FIRMWARE UPDATES</title>
+      <table>
+        <title>SCCM Failed to update on the following hosts</title>
+        <search>
+          <query>|inputlookup sccm_list.csv
+| eventstats max(sccm_version) as maximum
+| eval compliance=if(maximum==sccm_version,"Pass", "Fail")
+| where compliance=="Fail" AND isnotnull(host)
+| table host maximum sccm_version compliance</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

@@ -1,0 +1,172 @@
+<form>
+  <label>User OU Lookup</label>
+  <description>Search a Domain or All, then drill down on an OU to determine users in that particular OU.</description>
+  <fieldset submitButton="true">
+    <input type="multiselect" token="field26" searchWhenChanged="true">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>user_domain=</valuePrefix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>user_domain</fieldForLabel>
+      <fieldForValue>user_domain</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | stats count by user_domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="multiselect" token="field39">
+      <label>Top OU</label>
+      <fieldForLabel>user_t1</fieldForLabel>
+      <fieldForValue>user_t1</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ | stats count by user_t1</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <valuePrefix>user_t1="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field32">
+      <label>Sub OU-1</label>
+      <fieldForLabel>user_t2</fieldForLabel>
+      <fieldForValue>user_t2</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ $field39$ | stats count by user_t2</query>
+      </search>
+      <choice value="*">all</choice>
+      <initialValue>*</initialValue>
+      <default>*</default>
+      <valuePrefix>user_t2="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field33">
+      <label>Sub OU-2</label>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>user_t3</fieldForLabel>
+      <fieldForValue>user_t3</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ AND $field39$ AND  $field32$ | stats count by user_t3</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>user_t3="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field34">
+      <label>Sub OU-3</label>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>user_t4</fieldForLabel>
+      <fieldForValue>user_t4</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ $field39$ $field32$ $field33$ | stats count by user_t4</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>user_t4="</valuePrefix>
+      <delimiter> OR </delimiter>
+      <valueSuffix>"</valueSuffix>
+    </input>
+    <input type="multiselect" token="field35">
+      <label>Sub OU-4</label>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>user_t5</fieldForLabel>
+      <fieldForValue>user_t5</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ | stats count by user_t5</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>user_t5="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="multiselect" token="field37">
+      <label>Sub OU-6</label>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>user_t7</fieldForLabel>
+      <fieldForValue>user_t7</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | stats count by user_t7</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>user_t6="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="multiselect" token="field36">
+      <label>Sub OU-5</label>
+      <choice value="*">all</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>user_t6</fieldForLabel>
+      <fieldForValue>user_t6</fieldForValue>
+      <search>
+        <query>| inputlookup user_list_main.csv | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$| stats count by user_t6</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <valuePrefix>user_t6="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Count of Users</title>
+      <single>
+        <search>
+          <query>| inputlookup user_list_main.csv | fillnull value=" " user_t1 user_t2 user_t3 user_t4 user_t5 user_t6 user_t7  | eval user_ou=user_t1."__".user_t2."__".user_t3."__".user_t4."__".user_t5."__".user_t6."__".user_t7 | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | table user_fullname  user_t1 user_t2 user_t3 user_t4 user_t5 user_t6 user_t7 user_ou| sort 0 user_fullname | rename user_fullname as Fullname, user_ou as "Full OU",  user_t1 as "Top OU", user_t2 as "Sub OU-1", user_t3 as "Sub OU-2", user_t4 as "Sub OU-3", user_t5 as "Sub OU-4", user_t6 as "Sub OU-5", user_t7 as "Sub OU-6" | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>OU Search - Domains, EXT, RSRC, USR</title>
+      <table>
+        <search>
+          <query>| inputlookup user_list_main.csv | fillnull value=" " user_t1 user_t2 user_t3 user_t4 user_t5 user_t6 user_t7  | eval user_ou=user_t1."__".user_t2."__".user_t3."__".user_t4."__".user_t5."__".user_t6."__".user_t7 | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | table user_fullname  user_t1 user_t2 user_t3 user_t4 user_t5 user_t6 user_t7 user_ou| sort 0 user_fullname | rename user_fullname as Fullname, user_ou as "Full OU",  user_t1 as "Top OU", user_t2 as "Sub OU-1", user_t3 as "Sub OU-2", user_t4 as "Sub OU-3", user_t5 as "Sub OU-4", user_t6 as "Sub OU-5", user_t7 as "Sub OU-6"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <drilldown>
+          <set token="field25">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$false$">
+      <title>User information associated to the host the User has Logged into</title>
+      <table>
+        <search>
+          <query>| inputlookup append=true user_list_main.csv | fillnull value=" " user_t1 user_t2 user_t3 user_t4 user_t5 user_t6 user_t7   | search $field26$ $field39$ $field32$ $field33$ $field34$ $field35$ $field36$ | lookup asset_list tanium_username as user_sam OUTPUT host ip date | table user_sam user_fullname host ip date | sort 0 user_fullname</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+      </table>
+    </panel>
+  </row>
+</form>

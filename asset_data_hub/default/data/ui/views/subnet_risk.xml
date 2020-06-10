@@ -1,0 +1,107 @@
+<form>
+  <label>Subnet Risk Score</label>
+  <fieldset submitButton="true">
+    <input type="dropdown" token="field1">
+      <label>Search Subnet</label>
+      <fieldForLabel>sub</fieldForLabel>
+      <fieldForValue>sub</fieldForValue>
+      <search>
+        <query>| inputlookup subnet_score2.csv | rex max_match=0 field=subnet "(?&lt;sub&gt;\S+)" | mvexpand sub | stats count by sub</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Table of Risk Scores</title>
+      <table>
+        <title>Click on Subnet to drilldown</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | rex max_match=0 field=subnet "(?&lt;sub&gt;\S+)" | mvexpand sub | stats values(vrf) as VRF, values(vlan) as VLAN, values(location) as Location, sum(score) as score2, count(ip2) as ip3 by sub | fields VRF VLAN Location score2 ip3 sub | eval risk_score=round(score2/ip3,2) | rename risk_score as "Risk Score", ip3 as "IP Count", sub as Subnet | table Subnet "IP Count" "Risk Score" VLAN VRF Location| fillnull value="0.00" "Risk Score" |sort -"Risk Score"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <set token="field1">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Subnet Specifics</title>
+      <table>
+        <title>Search Subnet ($field1$)</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | rex max_match=0 field=subnet "(?&lt;sub&gt;\S+)" | mvexpand sub | search sub="$field1$" | stats values(vrf) as VRF, values(vlan) as VLAN, values(location) as Location, sum(score) as score2, count(ip2) as ip3 by sub | fields VRF VLAN Location score2 ip3 sub | eval risk_score=round(score2/ip3,2) | rename risk_score as "Risk Score", ip3 as "IP Count", sub as Subnet | table Subnet "Risk Score" "IP Count"  VLAN VRF Location| fillnull value="0.00" "Risk Score" |sort  "Risk Score" | transpose column_name=Info | rename "row 1" as Data</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts seen by Subnet in Past 30 days</title>
+      <table>
+        <title>$field1$</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search sub_subnet="$field1$*" | eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30) | table host domain date ip  | rename sub_location as "Subnet Location", sub_subnet as "Subnet", sub_vlan as VLAN, sub_vrf as VRF  | eval date=strftime(date,"%F")  |sort 0 - date</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Subnets Scanned</title>
+      <single>
+        <search>
+          <query>| inputlookup subnet_score2.csv | rex max_match=0 field=subnet "(?&lt;sub&gt;\S+)" | mvexpand sub | stats dc(sub) as Subnet</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <chart>
+        <title>IP Scan Count</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | rex max_match=0 field=subnet "(?&lt;sub&gt;\S+)" | mvexpand sub | eval ipscan=if(scanned LIKE "%yes%", "yes", "no") | stats count by ipscan | replace "yes" with "YES", "no" with "NO" in ipscan | eval ipscan2=ipscan.", ".count | table ipscan2 count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>IP without Matched Subnets</title>
+      <chart>
+        <title>YES/NO for scanned or Not</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | eval ipscan=if(scanned LIKE "%yes%", "yes", "no") | where isnotnull(ip2) AND isnull(subnet) | stats count by ipscan | replace "yes" with "YES", "no" with "NO" in ipscan | eval ipscan2=ipscan.", ".count | table ipscan2 count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>List of IPs w/out subnet</title>
+        <search>
+          <query>| inputlookup subnet_score2.csv | eval ipscan=if(scanned LIKE "%yes%", "yes", "no") | where isnotnull(ip2) AND isnull(subnet) | fillnull value="N/A" subnet | stats values(*) as * by ip2 | table ip2 subnet ipscan plugin | rename ip2 as "IP" subnet as "Subnet" ipscan as "Scanned" plugin as "Plugins"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

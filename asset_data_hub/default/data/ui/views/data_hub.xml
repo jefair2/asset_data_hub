@@ -1,0 +1,114 @@
+<dashboard>
+  <label>Data Hub</label>
+  <description>Current Data Sources: Discover | Management | Monitoring | Patching | Scanning | Security | Splunk</description>
+  <row>
+    <panel>
+      <html>
+        <p>Data Hub - Single consolidated Location, aggregating and correlating data from multiple sources.  Allowing countless dashboards, reports, searches and statistical answers across our environment</p>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Discovery Of Assets</title>
+      <chart>
+        <title>All Time</title>
+        <search>
+          <query>| inputlookup fake.csv | stats count(security) as "Security Systems" count(patching) as "Patching Systems" count(scanning) as "Scanning Systems" count(management) as "Management Systems" count(monitoring) as "Monitoring Systems" count(discovery) as "Discovery Systems", count(splunk) as "Splunk" | eval Systems="count" | table Systems *</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisY.maximumNumber">150</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.placement">top</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Agent Based tool count within 10 days.</title>
+      <chart>
+        <search>
+          <query>| inputlookup fake.csv | eval management_date=strptime(management_date,"%m/%d/%Y"), patching_date=strptime(patching_date,"%m/%d/%Y"), security_date=strptime(security_date,"%m/%d/%Y"), splunk_date=strptime(splunk_date,"%m/%d/%Y"), monitoring_date=strptime(monitoring_date,"%m/%d/%Y")  | stats sum(eval(if(security=1 AND security_date &gt;= now()-(60*60*24*5),1,0))) as "Security", sum(eval(if(management=1 AND management_date &gt;= now()-(60*60*24*5),1,0))) as "Management", sum(eval(if(patching=1 AND patching_date &gt;= now()-(60*60*24*5),1,0))) as "Patching", sum(eval(if(monitoring=1 AND monitoring_date &gt;= now()-(60*60*24*5),1,0))) as "Monitoring", sum(eval(if(splunk=1 AND splunk_date &gt;= now()-(60*60*24*5),1,0))) as "Splunk"  | eval Systems="Total" | table Systems *</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">top</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Agent Based System Count by Tool Overlap</title>
+      <chart>
+        <title>Security Patching Monitoring Management Splunk</title>
+        <search>
+          <query>|inputlookup fake.csv |  addtotals security patching management monitoring splunk | stats count by Total | rename Total as "# of Tools", count as "# of Systems"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisY.maximumNumber">35</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.seriesColors">[0x3863a0]</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Count by Device Type within 10 days</title>
+      <chart>
+        <search>
+          <query>| inputlookup fake.csv | eval date=strptime(date,"%m/%d/%Y") | where date &gt;= now()-(60*60*24*10) | stats sum(eval(case(host LIKE "server%", 1))) as "Servers", sum(eval(case(host LIKE "desktop%", 1))) as "Workstations",sum(eval(case(host LIKE "printer%", 1))) as "Printers"  | eval Systems="Total" | table Systems *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisY.maximumNumber">50</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.legend.placement">top</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Server Count by Type in 10 days</title>
+      <chart>
+        <search>
+          <query>| inputlookup fake.csv | eval date=strptime(date,"%m/%d/%Y") | where date &gt;= now()-(60*60*24*10) | search host=server* | eval os1=os.".".os_version | stats sum(eval(case(os1 LIKE "%2016%", 1))) as "Windows 2016", sum(eval(case(os1 LIKE "%2012%", 1))) as "Windows 2012",  sum(eval(case(os1 LIKE "%2008%", 1))) as "Windows 2008", sum(eval(case(os1 LIKE "%10%", 1))) as "Red Hat 10",  sum(eval(case(os1 LIKE "%11%", 1))) as "Red Hat 11" | eval Systems="Total" | table Systems *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisY.maximumNumber">10</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.legend.placement">top</option>
+      </chart>
+    </panel>
+  </row>
+</dashboard>
