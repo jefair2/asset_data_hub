@@ -1,0 +1,83 @@
+<dashboard theme="dark">
+  <label>Bluecoat Proxy SG</label>
+  <row>
+    <panel>
+      <title>Last Event Date</title>
+      <single>
+        <title>All Bluecoat Events</title>
+        <search>
+          <query>sourcetype="bluecoat:proxysg:access:file" src=* latest=now()
+| head 1
+| table date</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+      <single>
+        <title>Drilldown: Host Events</title>
+        <search>
+          <query>index=n_ent_network sourcetype="bluecoat:proxysg:access:file" src="$ip$" latest=now()
+| head 1
+| table date</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Fields of Interest</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv
+| fields bluecoat*
+| transpose
+| rename column as field
+| table field</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Hosts with Bluecoat Activity</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv
+| where bluecoat=1
+| table bluecoat_ip, host</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <unset token="ip"></unset>
+          <set token="ip">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Drilldown: Host Web Activity</title>
+      <table>
+        <search>
+          <query>index=n_ent_network sourcetype="bluecoat:proxysg:access:file" src=$ip$
+| fields cs_host
+| stats count by cs_host
+| sort - count</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

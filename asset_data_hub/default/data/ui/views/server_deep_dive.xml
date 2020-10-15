@@ -1,0 +1,106 @@
+<form>
+  <label>Server Lookup Deep Dive</label>
+  <fieldset submitButton="false">
+    <input type="text" token="hostname" searchWhenChanged="true">
+      <label>Server Name</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Tanium Asset Info</title>
+      <table>
+        <search>
+          <query>index=tanium Computer_Name=$hostname$* $hostname$ Question_Name="Splunk-Ultimate-Asset-SSRS" | head 1 | table Computer_Name Operating_System IPv4_Address Uptime Days_Since_Last_Used Username</query>
+          <earliest>-3d@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>C Drive Perfmon</title>
+      <single>
+        <title>Storage Free</title>
+        <search>
+          <query>host=$hostname$ (index=mssharepoint OR index=perfmon tag=oshost tag=performance tag=storage instance="C:") earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | eval storage_used_percent = 100 - storage_free_percent, disk_queue_length = if (counter="Current Disk Queue Length", Value, NULL), storage_free=if (counter="Free Megabytes", Value, NULL) | timechart span=5m max(storage_free) as storage_free_mb</query>
+        </search>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0xd93f3c","0xf7bc38","0x65a637"]</option>
+        <option name="rangeValues">[500,1000]</option>
+        <option name="unit">MB</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>Storage Used Percent</title>
+        <search>
+          <query>host=$hostname$ (index=mssharepoint OR index=perfmon tag=oshost tag=performance tag=storage instance="C:") earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | eval storage_used_percent = 100 - storage_free_percent, disk_queue_length = if (counter="Current Disk Queue Length", Value, NULL), storage_free=if (counter="Free Megabytes", Value, NULL) | timechart span=5m max(storage_used_percent) as storage_used_percent</query>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="rangeColors">["0x65a637","0xf7bc38","0xd93f3c"]</option>
+        <option name="rangeValues">[90,95]</option>
+        <option name="unit">%</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>Disk Queue Length</title>
+        <search>
+          <query>host=$hostname$ (index=mssharepoint OR index=perfmon tag=oshost tag=performance tag=storage instance="C:") earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | eval storage_used_percent = 100 - storage_free_percent, disk_queue_length = if (counter="Current Disk Queue Length", Value, 0), storage_free=if (counter="Free Megabytes", Value, NULL) | timechart span=5m max(disk_queue_length) as disk_queue_length</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="rangeColors">["0x65a637","0xf58f39"]</option>
+        <option name="rangeValues">[32]</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>Total IOPS</title>
+        <search>
+          <query>host=$hostname$ (index=mssharepoint OR index=perfmon tag=oshost tag=performance tag=storage instance="C:") earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | eval storage_used_percent = 100 - storage_free_percent, disk_queue_length = if (counter="Current Disk Queue Length", Value, NULL), storage_free=if (counter="Free Megabytes", Value, NULL) | timechart span=5m max(total_ops) as total_ops</query>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Critical Running Services</title>
+      <single>
+        <title>BITS</title>
+        <search>
+          <query>host=rsrcndagmgt index=windows sourcetype="Powershell:ServicesMonitor" earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | timechart span=5m max(BITS) as BITS</query>
+        </search>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0xd93f3c","0xf7bc38","0x65a637"]</option>
+        <option name="rangeValues">[1,3]</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>CcmExec</title>
+        <search>
+          <query>host=rsrcndagmgt index=windows sourcetype="Powershell:ServicesMonitor" earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | timechart span=5m max(CcmExec) as CcmExec</query>
+        </search>
+        <option name="rangeColors">["0xd93f3c","0xf58f39","0x65a637"]</option>
+        <option name="rangeValues">[1,3]</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>Windows Update Service</title>
+        <search>
+          <query>host=rsrcndagmgt index=windows sourcetype="Powershell:ServicesMonitor" earliest=-4h@h [ stats count | eval latest=(floor(now()/300))*300 | fields latest ] | timechart span=5m max(wuauserv) as wuauserv</query>
+        </search>
+        <option name="rangeColors">["0xd93f3c","0xf58f39","0x65a637"]</option>
+        <option name="rangeValues">[1,3]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+</form>

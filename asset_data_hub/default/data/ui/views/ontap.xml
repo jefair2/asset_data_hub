@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dashboard theme="dark">
+  <label>Home</label>
+  <row depends="$hide$">
+    <panel>
+      <html>
+        <style>
+          text.single-result{
+            font-size: 20px !important;
+            font-weight:normal !important;
+          }
+          text.after-label{
+            font-size: 15px !important;
+            font-weight:normal !important;
+          }
+          .splunk-single{
+            margin-top: -10px !important;
+            margin-bottom: 20px !important;
+          }
+          #dashboard_common_single .panel-title{
+            font-weight: bold;
+            font-size: 14px;
+          }
+          #dashboard_common_single .panel-element-row.grouped{
+            border-top:0px !important;
+          }
+        </style>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>7-Mode Controllers Overview</title>
+        <search>
+          <query>
+                    (sourcetype=ontap:perf source="SystemPerfHandler") OR (sourcetype=ontap:system source="system-get-info") OR (sourcetype=ontap:system source="system-get-version") earliest=-4h latest=now
+                    | append [search earliest=-4h `CapacityByHost`]
+                    | stats first(*) as *, first(_time) as _time by host
+                    | rename is-clustered AS is_clustered
+                    | search is_clustered=false
+                    | eval is_clustered_text=if(is_clustered=="true", "Yes", "No")
+                    | `unitize`
+                    | rename host AS "Host"
+                    system-name AS "Controller"
+                    gb_used AS "Used (GB)"
+                    gb_total AS "Total (GB)"
+                    percent_used AS "Used (%)"
+                    total_processor_busy_percent AS "CPU (%)"
+                    disk_data_read_rate AS "Disk Read"
+                    disk_data_written_rate AS "Disk Write"
+                    total_ops_rate AS "Total Ops"
+                    net_data_recv_rate AS "Network Received", net_data_sent_rate AS "Network Sent", ontap_version AS "ONTap Version", system-serial-number AS "Serial Number", vendor-id AS "Vendor", is_clustered_text AS "Clustered"
+                    | table _time
+                    "Host"
+                    "Controller"
+                    "Used (GB)"
+                    "Total (GB)"
+                    "Used (%)"
+                    "CPU (%)"
+                    "Disk Read"
+                    "Disk Write"
+                    "Total Ops"
+                    "Network Received"
+                    "Network Sent"
+                    "ONTap Version"
+                    "Serial Number"
+                    "Vendor"
+                    "Clustered"
+                </query>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+        <drilldown>
+          <link>/app/splunk_app_netapp/ontap_entity_filer/?form.name=$row.Host$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Cluster Mode Controllers Overview</title>
+        <search>
+          <query>
+                    (sourcetype=ontap:perf source="SystemPerfHandler") OR (sourcetype=ontap:system source="system-get-info") OR (sourcetype=ontap:system source="system-get-version") OR (sourcetype=ontap:system source=system-node-get-iter) earliest=-4h latest=now
+                    | append [search earliest=-4h `CapacityByHost`]
+                    | stats first(*) AS *, first(_time) AS _time, values(node) AS cluster_node_list by host
+                    | rename is-clustered AS is_clustered
+                    | search is_clustered=true
+                    | eval is_clustered_text=if(is_clustered=="true", "Yes", "No")
+                    | `unitize`
+                    | rename host AS "Host"
+                    cluster_node_list AS "Nodes"
+                    gb_used AS "Used (GB)"
+                    gb_total AS "Total (GB)"
+                    percent_used AS "Used (%)"
+                    total_processor_busy_percent AS "CPU (%)"
+                    disk_data_read_rate AS "Disk Read"
+                    disk_data_written_rate AS "Disk Write"
+                    total_ops_rate AS "Total Ops"
+                    net_data_recv_rate AS "Network Received"
+                    net_data_sent_rate AS "Network Sent"
+                    ontap_version AS "ONTap Version"
+                    system-serial-number AS "Serial Number"
+                    vendor-id AS "Vendor"
+                    is_clustered_text AS "Clustered"
+                    | table _time
+                    "Host"
+                    "Nodes"
+                    "Used (GB)"
+                    "Total (GB)"
+                    "Used (%)"
+                    "CPU (%)"
+                    "Disk Read"
+                    "Disk Write"
+                    "Total Ops"
+                    "Network Received"
+                    "Network Sent"
+                    "ONTap Version"
+                    "Serial Number"
+                    "Vendor"
+                    "Clustered"
+                </query>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+        <drilldown>
+          <link>/app/splunk_app_netapp/ontap_entity_cluster/?form.name=$row.Host$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="dashboard_common_single">
+      <title>Inventory Counts</title>
+      <single>
+        <search>
+          <query>
+                        sourcetype="ontap:aggr" source="aggr-list-info" OR source=aggr-get-iter
+                        | rename aggregate-uuid AS aggruuid
+                        | eval uuid=if(isnull(uuid),aggruuid,uuid)
+                        | dedup uuid
+                        | stats count | eval count = count." "."Aggregate(s)"
+                    </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+      </single>
+      <single>
+        <search>
+          <query>
+                        sourcetype="ontap:disk" source="disk-list-info" OR source="storage-disk-get-iter"
+                        | rename disk-uid AS diskuid
+                        | eval uid=if(isnull(uid),diskuid,uid)
+                        | dedup uid
+                        | stats count | eval count = count." "."Disk(s)"
+                    </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+      </single>
+      <single>
+        <search>
+          <query>
+                        sourcetype="ontap:volume" (source=volume-get-iter OR source=volume-list-info-iter-start)
+                        | rename volume-id-attributes.uuid AS voluuid
+                        | eval uuid=if(isnull(uuid),voluuid,uuid)
+                        | dedup uuid
+                        | stats count | eval count = count." "."Volume(s)"
+                    </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+      </single>
+      <single>
+        <search>
+          <query>
+                        sourcetype="ontap:lun" (source="lun-list-info" OR source="lun-get-iter")
+                        | dedup uuid
+                        | stats count | eval count = count." "."LUN(s)"
+                    </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Aggregates with the highest transfer rates over the past 4 hours (transfers/S)</title>
+        <search>
+          <query>
+                    sourcetype=ontap:perf source=AggrPerfHandler
+                    | stats avg(total_transfers_rate) AS total_transfers_rate_average
+                    max(total_transfers_rate) AS total_transfers_rate_max
+                    values(instance_name) AS instance_name
+                    by host, instance_uuid
+                    | eval total_transfers_rate_average=total_transfers_rate_average/1000
+                    | eval total_transfers_rate_max=total_transfers_rate_max/1000
+                    | sort - total_transfers_rate_max
+                    | fields host, instance_name, total_transfers_rate_average, total_transfers_rate_max
+                    | rename host AS "Host",
+                    instance_name AS "Aggregate",
+                    total_transfers_rate_average AS "Average Transfer Rate",
+                    total_transfers_rate_max AS "Max Transfer Rate"
+                    | head 10
+                </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+        <drilldown>
+          <link>
+            <![CDATA[/app/splunk_app_netapp/aggregate_detail/?form.host=$row.Host$&form.name=$row.Aggregate$]]>
+          </link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Volumes with highest latency over the past 4 hours (ms)</title>
+        <search>
+          <query>
+                    sourcetype=ontap:perf source=VolumePerfHandler
+                    | stats avg(avg_latency_average) as avg_latency_average,
+                    max(avg_latency_average) as avg_latency_max,
+                    values(instance_uuid) as instance_uuid
+                    by host, vserver_name, instance_name
+                    | eval avg_latency_average=avg_latency_average/1000
+                    | eval avg_latency_max=avg_latency_max/1000
+                    | sort - avg_latency_max
+                    | eval vserver_name=if(vserver_name="None", "", vserver_name)
+                    | fields host, vserver_name, instance_name, avg_latency_average, avg_latency_max
+                    | rename host AS "Host"
+                    instance_name AS "Volume"
+                    vserver_name as "VServer"
+                    avg_latency_average as "Average Latency"
+                    avg_latency_max as "Max Latency"
+                    | head 10
+                </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+        <drilldown>
+          <link>
+            <![CDATA[/app/splunk_app_netapp/volume_detail/?form.host=$row.Host$&form.name=$row.Volume$]]>
+          </link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>LUNs with highest latency over the past 4 hours (ms)</title>
+        <search>
+          <query>
+                    sourcetype=ontap:perf source=LunPerfHandler
+                    | eval LUN=if(isnull(display_name),instance_name,display_name)
+                    | stats avg(avg_latency_average) AS avg_latency max(avg_latency_average) AS avg_latency_max by host,LUN
+                    | sort - avg_latency_max
+                    | table host, LUN, avg_latency, avg_latency_max
+                    | rename host AS "Host", avg_latency AS "Average Latency", avg_latency_max AS "Max Latency"
+                    | head 10
+                </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+        <drilldown>
+          <link>
+            <![CDATA[/app/splunk_app_netapp/lun_detail/?form.host=$row.Host$&form.name=$row.LUN$]]>
+          </link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Highest Max User Read Latency Disks over the past 4 hours (ms)</title>
+        <search>
+          <query>
+                    sourcetype=ontap:perf source=DiskPerfHandler
+                    | stats avg(user_read_latency_average) as user_read_latency_average,
+                    max(user_read_latency_average) as user_read_latency_max,
+                    first(display_name) as display_name by host, instance_name
+                    | eval user_read_latency_average=user_read_latency_average/1000
+                    | eval user_read_latency_max=user_read_latency_max/1000
+                    | sort - user_read_latency_max
+                    | table host, display_name, user_read_latency*, instance_name
+                    | rename host AS "Host", display_name AS "Disk",
+                    user_read_latency_average AS "Average Read Latency",
+                    user_read_latency_max AS "Max Read Latency"
+                    | head 10
+                </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+        <drilldown>
+          <link>
+            <![CDATA[/app/splunk_app_netapp/disk_detail/?form.host=$row.Host$&form.name=$row.Disk$]]>
+          </link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Syslog Errors or Warnings in the past 4 hours</title>
+        <search>
+          <query>
+                    sourcetype="ontap:syslog" (error OR warning)
+                </query>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

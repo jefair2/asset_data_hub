@@ -1,0 +1,40 @@
+<dashboard theme="dark">
+  <label>Disabled Assets</label>
+  <row>
+    <panel>
+      <title>Total Number of hosts Disabled in AD which have checked in within 30 days</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) | where ad_disabled2=1 | table host domain os ad_disabled2 date  | eval date=strftime(date, "%F") | stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Disabled Servers</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) | where ad_disabled2=1 | where os_class="server" | table host domain os ad_disabled2 date  os_class| eval date=strftime(date, "%F") |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Disabled Workstations</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | eval date=strptime(date, "%F") | where date &gt;= now()-(60*60*24*30) | where ad_disabled2=1 | where os_class="workstation" | table host domain os ad_disabled2 date  os_class| eval date=strftime(date, "%F") |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

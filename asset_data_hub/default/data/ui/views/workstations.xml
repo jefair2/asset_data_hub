@@ -1,0 +1,126 @@
+<form>
+  <label>Workstations</label>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="field6" searchWhenChanged="true">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <fieldForLabel>domain</fieldForLabel>
+      <fieldForValue>domain</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv | where os_class="workstation" | stats count by domain | sort - count</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Server OS Breakdown</title>
+      <input type="dropdown" token="field1">
+        <label>OS type</label>
+        <fieldForLabel>os_type</fieldForLabel>
+        <fieldForValue>os_type</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | where os_class="workstation" | stats count by os_type</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+      </input>
+      <input type="dropdown" token="field2" searchWhenChanged="true">
+        <label>Version</label>
+        <fieldForLabel>os_vers</fieldForLabel>
+        <fieldForValue>os_vers</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | where os_class="workstation" | search os_type="*$field1$*" | stats count by os_vers</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <choice value="*">All</choice>
+        <default>*</default>
+      </input>
+      <input type="dropdown" token="field3">
+        <label>Release</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>os_release</fieldForLabel>
+        <fieldForValue>os_release</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | where os_class="workstation" | stats count by os_release</query>
+        </search>
+      </input>
+      <input type="dropdown" token="field4">
+        <label>Service Pack</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>os_pack</fieldForLabel>
+        <fieldForValue>os_pack</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | where os_class="workstation"  | stats count by os_pack</query>
+        </search>
+      </input>
+      <input type="dropdown" token="field5">
+        <label>Model</label>
+        <choice value="*">All</choice>
+        <default>*</default>
+        <fieldForLabel>os_model</fieldForLabel>
+        <fieldForValue>os_model</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv | where os_class="workstation"  | stats count by os_model</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </input>
+      <table>
+        <title>OS= ($field1$ $field2$ $field3$ $field4$ $field5$ )  Domain=$field6$   |||  Click for Asset Host Lookup Page</title>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30)| eval date=strftime(date,"%F") | where os_class="workstation" |  fillnull value=" " | search domain="$field6$*" os_type="*$field1$*" os_vers="*$field2$*" os_release="*$field3$*" os_pack="*$field4$*" os_model="*$field5$*"| table host domain date os ip mac sub_subnet tanium_username | sort - date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <drilldown>
+          <link target="_blank">https://sh-splunk.osd.mil/en-US/app/jsp_assets/asset_list_host_lookup?form.field1=$click.value$</link>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Additional Info based on Dataset</title>
+      <input type="dropdown" token="field7">
+        <label>Info Search</label>
+        <choice value="null">None</choice>
+        <fieldForLabel>Tool</fieldForLabel>
+        <fieldForValue>Tool</fieldForValue>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30)| eval date=strftime(date,"%F") | table acas dhcp hbss msl sccm security splunk os sub_subnet tanium |  rename sub_subnet as "Subnet" | transpose | table column | rename column as "Tool" |</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <default>null</default>
+      </input>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30)| eval date=strftime(date,"%F")  | where os_class="workstation" |  fillnull value=" " | search domain="$field6$*" os_type="*$field1$*" os_vers="*$field2$*" os_release="*$field3$*" os_pack="*$field4$*" os_model="*$field5$*"| fields host $field7$_date $field7$* | table host $field7$_date $field7$* | sort - $field7$_date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">21</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Server Tool Discovery and Managed</title>&gt;<table>
+        <search>
+          <query>| inputlookup asset_list.csv |eval date=strptime(date,"%F") | where date &gt;= now()-(60*60*24*30)| eval date=strftime(date,"%F")  | where os_class="workstation" |  fillnull value=" " | search domain="$field6$*" os_type="*$field1$*" os_vers="*$field2$*" os_release="*$field3$*" os_pack="*$field4$*" os_model="*$field5$*"| table date host acas hbss dhcp  security msl splunk sccm tanium sccm_managed tanium_managed| replace "1" with "Yes" in acas dhcp security hbss tanium sccm msl splunk | fillnull value=0 acas dhcp security hbss tanium | sort - date | fields - date</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

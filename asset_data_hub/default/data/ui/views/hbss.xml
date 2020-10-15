@@ -1,0 +1,131 @@
+<dashboard theme="dark">
+  <label>HBSS</label>
+  <row>
+    <panel>
+      <title>STIG checked, but not in HBSS asset list</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv
+| eval host=lower(host)
+| join host [search index=n_cy_compliance sourcetype=mcafee:compliance BenchmarkID=xccdf* | dedup SystemName | eval host=lower(SystemName) | eval asset=1 | fields host asset]
+| where isnull(hbss) OR isnull(asset)
+| table host</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Systems Scanned for STIG Compliance</title>
+      <table>
+        <title>Drill Down, click system to populate other panels</title>
+        <search>
+          <query>`hbss_compliance` BenchmarkID=xccdf*
+| dedup SystemName
+| fields SystemName
+| table SystemName
+| sort SystemName</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="system">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>$system$: Ratio of STIG Non-Compliance</title>
+      <single>
+        <title>CM-6 Configuration Settings</title>
+        <search>
+          <query>`hbss_compliance` BenchmarkID=xccdf*
+| where SystemName="$system$"
+| stats count(eval(Result="Fail")) as perResult, count as Total
+| eval ratio = round(perResult/Total*100,1)
+| eval ratio = ratio + "%"
+| fields ratio</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">0</option>
+      </single>
+      <chart>
+        <title>CM-6 Configuration Settings</title>
+        <search>
+          <query>`hbss_compliance` BenchmarkID=xccdf*
+| where SystemName="$system$"
+| stats count by Result</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>$system$: Tool Management</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| where host=lower("$system$")
+| eval "Cylance"=if(cylance=1,"Yes","No")
+| eval "Splunk"=if(splunk=1,"Yes","No")
+| eval "HBSS"=if(hbss=1,"Yes","No")
+| eval "AD"=if(ad=1,"Yes","No")
+| eval "ACAS"=if(acas=1,"Yes","No")
+| table "Cylance" "Splunk" "HBSS" "AD" "ACAS"
+| transpose
+| rename "column" as "Tool", "row 1" as "Is Fully Managed"
+| table "Tool" "Is Fully Managed"
+| sort "Tool"</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Drilldown: $system$: STIG Failures according to HBSS Policy Scan</title>
+      <table>
+        <title>CM-6 Configuration Settings</title>
+        <search>
+          <query>`hbss_compliance` BenchmarkID!=LatestPatchPolicyBenchmark
+| where SystemName="$system$" AND Result="Fail"
+| rex field=RuleID "xccdf_mil.disa.stig.rule_(?&lt;hbss_ruleid&gt;[^_]+)_rule"
+| table StartTime_Rule EndTime_Rule AuditName SystemName hbss_ruleid Result</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Patch Scan Results</title>
+      <table>
+        <title>RA-5 Vulnerability Scanning</title>
+        <search>
+          <query>`hbss_compliance` BenchmarkID=LatestPatchPolicyBenchmark
+| where SystemName="$system$" AND Result="Fail"
+| table StartTime_Rule EndTime_Rule AuditName SystemName RuleID Result</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

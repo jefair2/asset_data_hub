@@ -1,0 +1,130 @@
+<form theme="dark">
+  <label>Tools and Asset Compare</label>
+  <description>Note: Please make sure to select Tool #1 and Tool #2 and then hit Submit for each new query.</description>
+  <fieldset submitButton="true" autoRun="true">
+    <input type="dropdown" token="field1">
+      <label>Tool #1</label>
+      <change>
+        <set token="field1_name">$label$</set>
+      </change>
+      <fieldForLabel>field</fieldForLabel>
+      <fieldForValue>field</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv 
+| fields - *_* ip host date domain mac fqdn
+| transpose 
+| rename column as field
+| eval field=upper(field)
+| table field</query>
+      </search>
+    </input>
+    <input type="dropdown" token="field2">
+      <label>Tool #2</label>
+      <change>
+        <set token="field2_name">$label$</set>
+      </change>
+      <fieldForLabel>field</fieldForLabel>
+      <fieldForValue>field</fieldForValue>
+      <search>
+        <query>| inputlookup asset_list.csv 
+| fields - *_* ip host date domain mac fqdn
+| transpose 
+| rename column as field
+| eval field=upper(field)
+| table field</query>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>Total Systems $field1_name$ sees that $field2_name$ does not</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| foreach * [eval temp=upper("&lt;&lt;FIELD&gt;&gt;"), {temp}='&lt;&lt;FIELD&gt;&gt;' | fields - "&lt;&lt;FIELD&gt;&gt;" temp ]
+| search $field1$=1 
+| where isnull($field2$)
+| stats count AS "Total"</query>
+          <earliest>-3d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">100</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x65a637","0x6db7c6","0xf7bc38","0xf58f39","0xd93f3c"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Total Systems $field2_name$ sees that $field1_name$ does not</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| foreach * [eval temp=upper("&lt;&lt;FIELD&gt;&gt;"), {temp}='&lt;&lt;FIELD&gt;&gt;' | fields - "&lt;&lt;FIELD&gt;&gt;" temp ]
+| search $field2$=1 
+| where isnull($field1$)
+| stats count AS "Total"</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>List of Systems $field1_name$ sees that $field2_name$ does not</title>
+        <search>
+          <query>|inputlookup asset_list.csv 
+| foreach * [eval temp=upper("&lt;&lt;FIELD&gt;&gt;"), {temp}='&lt;&lt;FIELD&gt;&gt;'| fields - "&lt;&lt;FIELD&gt;&gt;" temp ]
+| search $field1$=1 
+| where isnull($field2$)  
+|  eval _time=strptime(date, "%m/%d/%y") 
+| sort -_time 
+| fields HOST, IP, OS, MAC, FQDN, DATE, LAST_USER 
+| fields - _time</query>
+          <earliest>-3d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>List of Systems $field2_name$ sees that $field1_name$ does not</title>
+        <search>
+          <query>|inputlookup asset_list.csv 
+| foreach * [eval temp=upper("&lt;&lt;FIELD&gt;&gt;"), {temp}='&lt;&lt;FIELD&gt;&gt;'| fields - "&lt;&lt;FIELD&gt;&gt;" temp ]
+| search $field2$=1 
+| where isnull($field1$)  
+|  eval _time=strptime(date, "%m/%d/%y") 
+| sort -_time 
+| fields HOST, IP, OS, MAC, FQDN, DATE, LAST_USER 
+| fields - _time</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

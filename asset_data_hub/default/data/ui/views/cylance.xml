@@ -1,0 +1,206 @@
+<form theme="dark">
+  <label>Cylance</label>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="multiselect" token="Tenant" searchWhenChanged="true">
+      <label>Tenant</label>
+      <delimiter>" OR "</delimiter>
+      <search>
+        <query>| tstats count where index=cylance_protect AND sourcetype=syslog_device by source | table source</query>
+        <earliest>0</earliest>
+      </search>
+      <fieldForLabel>source</fieldForLabel>
+      <fieldForValue>source</fieldForValue>
+      <choice value="*">All</choice>
+      <default>*</default>
+    </input>
+    <input type="text" token="wild">
+      <label>Wildcard</label>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog* NOT sourcetype="syslog_audit_log" Tenant="$Tenant$" $wild$ | dedup "DeviceName" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="underLabel">Total Cylance PROTECT Agents (Comms within selected time range)</option>
+        <drilldown target="_self">
+          <link>/app/cylance_protect/OnlineDevices?form.Tenant=$Tenant|u$</link>
+        </drilldown>
+      </single>
+      <single>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog* NOT sourcetype="syslog_audit_log" Tenant="$Tenant$" $wild$ | stats latest(_time) as latestTime by DeviceName | eval status=if (now()-latestTime &gt; 86400, "Offline", "Online") | search status=Online | eval latestTime=strftime(latestTime,"%x %X") | sort 0 + latestTime | rename latestTime as "Last Communicated", DeviceName as "Device Name" | table "Last Communicated", "Device Name" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="underLabel">Devices Online (Comms within past 24 hours)</option>
+        <drilldown target="_self">
+          <link>/app/cylance_protect/OnlineDevices?form.Tenant=$Tenant|u$</link>
+        </drilldown>
+      </single>
+      <single>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog* NOT sourcetype="syslog_audit_log" Tenant="$Tenant$" $wild$ | stats latest(_time) as latestTime by DeviceName | eval status=if (now()-latestTime &gt; 86400, "Offline", "Online") | search status=Offline | eval latestTime=strftime(latestTime,"%x %X") | sort 0 + latestTime | rename latestTime as "Last Communicated", DeviceName as "Device Name" | table "Last Communicated", "Device Name" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="underLabel">Devices Offline (Comms not within past 24 hours)</option>
+        <drilldown target="_self">
+          <link>/app/cylance_protect/OfflineDevices?form.Tenant=$Tenant|u$</link>
+        </drilldown>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Last Communicated</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog* NOT sourcetype="syslog_audit_log" Tenant="$Tenant$" $wild$ |timechart span=1h dc("DeviceName") as Devices</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.text">Devices</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Top Agent Versions</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_device EventName=SystemSecurity Tenant="$Tenant$" $wild$| dedup "DeviceName" | top limit=0 "AgentVersion"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top Interpreter Versions</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_script_control EventName=Alert Tenant="$Tenant$" $wild$| dedup "DeviceName" | top limit=0 "InterpreterVersion"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Unknown Agents</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_device EventName=SystemSecurity Tenant="$Tenant$" $wild$| dedup "DeviceName" | where like(AgentVersion,"(unknown)") | table _time,DeviceName</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Most Recent Policy Activity</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_device Policy Tenant="$Tenant$" $wild$ | dedup DeviceName | table _time, DeviceName, Policy</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top Operating System Versions</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_device EventName=SystemSecurity Tenant="$Tenant$" $wild$ | dedup "DeviceName" | top limit=0 "OS"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <drilldown>
+          <link>search?q=eventtype=eventtype=cylance_index sourcetype=syslog_device EventName=SystemSecurity Tenant="*" "OS Version"="$click.value$" $wild$ | table "Tenant" "Device Name" "OS Version" "Agent Version" "Is Online" "Files Analyzed" "IP Addresses" "Mac Addresses" "Last Reported User" "Policy" "Zones" "Created" "Offline Date" "Online Date" "Background Detection" "Serial Number"</link>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Devices (Using Interpreter)</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_script_control EventName=Alert Tenant="$Tenant$" $wild$ | dedup "DeviceName" | table Tenant, DeviceName, InterpreterVersion</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Devices (Using Agents)</title>
+        <search>
+          <query>eventtype=cylance_index sourcetype=syslog_device EventName=SystemSecurity Tenant="$Tenant$" $wild$ | dedup "DeviceName" | table Tenant, DeviceName, ipv4, mac, AgentVersion, OS</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">true</option>
+        <option name="wrap">true</option>
+        <drilldown target="_self">
+          <link>/app/cylance_protect/device?form.Device=$row.DeviceName$&amp;form.Tenant=$Tenant|u$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>

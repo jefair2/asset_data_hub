@@ -1,0 +1,145 @@
+<dashboard theme="dark">
+  <label>J6 Executive View (Under Construction)</label>
+  <row>
+    <panel>
+      <title>CCRI Score</title>
+      <single>
+        <search>
+          <query>`acas_vuln` pluginID=19506 OR severity!=info
+| eval comparison=now()-60*60*24*30
+| eval comparison2=now()-60*60*24*14
+| where comparison&gt;=patchPubDate
+| where comparison2&gt;=lastSeen
+| stats count(eval(if(severity=="critical",1,NULL))) as crit, count(eval(if(severity=="high",1,NULL))) as high, count(eval(if(severity=="medium",1,NULL))) as med, count(eval(if(severity=="low",1,NULL))) as low dc(ip) as assetcount
+| eval total=round(((((crit+high)*10)+ (med*4) + low)/15)/assetcount,4)
+| fields total</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.0000</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Critical</title>
+      <single>
+        <search>
+          <query>`acas_vuln` severity=critical 
+| eval comparison=now()-60*60*24*30
+| eval comparison2=now()-60*60*24*14
+| where comparison&gt;=patchPubDate
+| where comparison2&gt;=lastSeen
+| bin _time span=7d
+| spath severity
+| stats count by _time</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">trend</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trendColorInterpretation">inverse</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>High</title>
+      <single>
+        <search>
+          <query>`acas_vuln` severity=high
+| eval comparison=now()-60*60*24*30
+| eval comparison2=now()-60*60*24*14
+| where comparison&gt;=patchPubDate
+| where comparison2&gt;=lastSeen
+| bin _time span=7d
+| spath severity
+| stats count by _time</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">trend</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trendColorInterpretation">inverse</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Medium</title>
+      <single>
+        <search>
+          <query>`acas_vuln` severity=medium
+| eval comparison=now()-60*60*24*30
+| eval comparison2=now()-60*60*24*14
+| where comparison&gt;=patchPubDate
+| where comparison2&gt;=lastSeen
+| bin _time span=7d
+| spath severity
+| stats count by _time</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">trend</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trendColorInterpretation">inverse</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Low</title>
+      <single>
+        <search>
+          <query>`acas_vuln` severity=low
+| eval comparison=now()-60*60*24*30
+| eval comparison2=now()-60*60*24*14
+| where comparison&gt;=patchPubDate
+| where comparison2&gt;=lastSeen
+| bin _time span=7d
+| spath severity
+| stats count by _time</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">trend</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trendColorInterpretation">inverse</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>VIP Lockout</title>
+      <table>
+        <search>
+          <query>| inputlookup vip.csv
+| join type=outer Account_Name [search `wef_index` sourcetype=WinEventLog source="WinEventLog:Security" (EventCode=4740 OR EventCode=4767) [|inputlookup vip.csv]
+| eval Account_Name=mvindex(Account_Name, 1)
+| eval Timestamp=strftime(_time,"%Y-%m-%d %H:%M:%S")
+| search Account_Name=*
+| reltime
+| stats latest(msad_action) AS Status, latest(Timestamp) AS Timestamp, latest(reltime) AS Relative_Time latest(src_nt_host) AS Computer_Name by Account_Name]
+| eval Last_Checked=coalesce(Timestamp, strftime(now(), "%Y-%m-%d %H:%M:%S"))
+| eval Status = if(isnull(Status), "No Events - Presumed Unlocked", Status)
+| eval Status_num = case(Status="locked",0, Status="unlocked",1,Status="No Events - Presumed Unlocked",2)
+| sort + Status_num Account_Name
+| where Status="locked out"
+| table Account_Name Status Last_Checked Relative_Time Computer_Name</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

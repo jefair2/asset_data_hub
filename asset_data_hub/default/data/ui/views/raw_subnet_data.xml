@@ -1,0 +1,119 @@
+<form>
+  <label>Raw Subnet Data</label>
+  <fieldset submitButton="true">
+    <input type="text" token="field1">
+      <label>Octet Search</label>
+    </input>
+    <input type="dropdown" token="field2" searchWhenChanged="true">
+      <label>VLAN</label>
+      <fieldForLabel>VLAN</fieldForLabel>
+      <fieldForValue>VLAN</fieldForValue>
+      <search>
+        <query>| inputlookup asset_sub.csv |  dedup VLAN | table VLAN</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="field3" searchWhenChanged="true">
+      <label>VRF</label>
+      <fieldForLabel>VRF</fieldForLabel>
+      <fieldForValue>VRF</fieldForValue>
+      <search>
+        <query>| inputlookup asset_sub.csv |  dedup VRF | table VRF</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="field4" searchWhenChanged="true">
+      <label>Location</label>
+      <fieldForLabel>Location</fieldForLabel>
+      <fieldForValue>Location</fieldForValue>
+      <search>
+        <query>| inputlookup asset_sub.csv |  dedup Location | table Location</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="field5">
+      <label>Subnet</label>
+      <fieldForLabel>Subnet</fieldForLabel>
+      <fieldForValue>Subnet</fieldForValue>
+      <search>
+        <query>| inputlookup asset_sub.csv |  dedup Subnet | table Subnet</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Subnet Search</title>
+      <table>
+        <title>Sub Info</title>
+        <search>
+          <query>| inputlookup asset_sub.csv | search Subnet="$field1$.*" |  table Subnet VLAN VRF Location</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Raw Subnet List</title>
+      <table>
+        <title>Click to Export full LIst</title>
+        <search>
+          <query>| inputlookup asset_sub.csv</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>VLAN Search</title>
+      <table>
+        <title>$field2$</title>
+        <search>
+          <query>| inputlookup asset_sub.csv | search VLAN="$field2$*" | fields - VLAN | fields *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>VRF Search</title>
+      <table>
+        <title>($field3$)</title>
+        <search>
+          <query>| inputlookup asset_sub.csv | search VRF="$field3$*" | fields - VRF | fields *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Location Search</title>
+      <table>
+        <title>($field4$)</title>
+        <search>
+          <query>| inputlookup asset_sub.csv | search Location="$field4$*" | fields - Location | fields *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Subnet Search</title>
+      <table>
+        <title>($field5$)</title>
+        <search>
+          <query>| inputlookup asset_sub.csv | search Subnet="$field5$*" | fields - Subnet | fields *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

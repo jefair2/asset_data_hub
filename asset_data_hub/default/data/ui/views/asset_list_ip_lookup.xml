@@ -1,0 +1,131 @@
+<form theme="dark">
+  <label>IP Lookup</label>
+  <fieldset submitButton="true">
+    <input type="text" token="field24" searchWhenChanged="true">
+      <label>Partial IP</label>
+    </input>
+    <input type="text" searchWhenChanged="true" token="field1">
+      <label>Exact IP</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Partial IP Search ($field24$)</title>
+      <table>
+        <title>Click for Exact IP info</title>
+        <search>
+          <query>| inputlookup asset_list.csv | eval _time=strptime(date, "%F") | rex max_match=0 field=ip "(?&lt;ip2&gt;\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})" | mvexpand ip2 | search ip2="$field24$*" |stats latest(host) as host, latest(_time) as date by ip2 | eval date=strftime(date,"%F") | sort ip</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">5</option>
+        <drilldown>
+          <set token="field1">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>IP Drilldown</title>
+      <table>
+        <title>Click for Specific info</title>
+        <search>
+          <query>| inputlookup asset_list.csv | search ip="$field1$"   |appendpipe [stats count| eval host="DOES NOT EXIST"  | where count==0 |table host] | rename tanium_username as "Last User Login", sub_subnet as "Subnet" |table host ip date | eval _time=strptime(date, "%F") |  stats latest(*) as * by ip</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="field45">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>General Information</title>
+      <table>
+        <title>General Info</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| search ip="$field45$"   
+| appendpipe [stats count| eval host="DOES NOT EXIST"  | where count==0 |table host] 
+| table date host ip mac domain fqdn
+| transpose column_name=Info | rename "row 1" as data</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Discovered by Tool</title>
+      <table>
+        <title>Click on Tool name to drilldown</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| search ip=$field45$ 
+| table acas ad bluecoat cylance hbss ise sccm solarwinds splunk
+| replace "1" with "Yes" in acas ad bluecoat cylance hbss ise sccm solarwinds splunk
+| transpose  column_name=Tool include_empty=false
+| rename "row 1" as Discovery</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="field2">$click.value$</set>
+          <set token="field3">$click.name2$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Managed By Agents</title>
+      <table>
+        <title>Tools</title>
+        <search>
+          <query>| inputlookup asset_list.csv 
+| search ip="$field45$" 
+| fields sccm cylance hbss splunk 
+| replace "1" with Yes in sccm tanium hbss splunk
+| fillnull value=NO sccm cylance hbss splunk 
+| rename sccm as SCCM, cylance as Cylance, hbss as HBSS, splunk as Splunk 
+| transpose column_name=Tool 
+| rename "row 1" as Data</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Tool Drilldown</title>
+      <table>
+        <search>
+          <query>| inputlookup asset_list.csv | search ip="*$field45$" | fields $field2$* | transpose column_name="$field2$" | rename "row 1" as Information</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">50</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

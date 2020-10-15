@@ -1,0 +1,27 @@
+<nav search_view="search" color="#03939f">
+  <view name="asset_list" />
+  <collection label="Assets">
+    <view name="asset_count" />
+    <view name="disabled_assets" />
+    <view name="asset_list_host_lookup" />
+    <view name="asset_list_ip_lookup" />
+    <view name="dashboard_tools_and_asset_detection_breakout" />
+  </collection>
+  <collection label="Users"> 
+    <view name="user_info" />
+    <view name="service_accounts" />
+    <view name="user_lookup" />
+  </collection>
+  <view name="tools_status" />
+  <collection label="Vendor Dashboards">
+    <view name="cylance" />
+    <view name="ise_administration_and_operational_audit" />
+    <view name="ontap" />
+  </collection>
+  <collection label="Compliance">
+    <view name="access_control" />
+    <view name="hbss" />
+    <view name="j6_dash" />
+  </collection>
+  <view name="search" /> 
+</nav>

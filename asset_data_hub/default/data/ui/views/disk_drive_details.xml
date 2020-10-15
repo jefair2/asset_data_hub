@@ -1,0 +1,100 @@
+<form>
+  <label>Disk Drive Details</label>
+  <description>Select Filters for better drilldown.  Daily Update - Based on Tanium information within past 24 hours</description>
+  <fieldset submitButton="true">
+    <input type="text" token="host">
+      <label>Host</label>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="domain">
+      <label>Domain</label>
+      <choice value="*">All</choice>
+      <valuePrefix>domain="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>domain</fieldForLabel>
+      <fieldForValue>domain</fieldForValue>
+      <search>
+        <query>| inputlookup asset_drive.csv | stats count by domain</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="multiselect" token="drive">
+      <label>Drive</label>
+      <valuePrefix>drive="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>drive</fieldForLabel>
+      <fieldForValue>drive</fieldForValue>
+      <search>
+        <query>| inputlookup asset_drive.csv | stats count by drive</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+    <input type="multiselect" token="osclass">
+      <label>OS Class</label>
+      <valuePrefix>os_class="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>os_class</fieldForLabel>
+      <fieldForValue>os_class</fieldForValue>
+      <search>
+        <query>| inputlookup asset_drive.csv | stats count by os_class</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Total Number of Hosts Based on Filters</title>
+      <single>
+        <search>
+          <query>| inputlookup asset_drive.csv | search host=$host$ $domain$ $drive$ $osclass$ | stats dc(host)</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Disk Drive Details</title>
+      <table>
+        <title>Size in GB</title>
+        <search>
+          <query>| inputlookup asset_drive.csv  | search host=$host$ $domain$ $drive$ $osclass$ | rex field=size "^(?&lt;size1&gt;\d+)\-GB" |  rex field=size "^(?&lt;size1&gt;\d+)\-GB" | rex field=free "^(?&lt;free1&gt;\d+)\-GB" | eval free2=round(free1/size1*100,2) | eval full=round(100-free2,2) | fields - size free | table date domain host os_class os drive free1 size1 free2 full  | rename free1 as "Total Free", free2 as "Percent Free", full as "Percent Full", size1 as "Total Size", drive as Drive, host as Host, os_class as "OS Class", os as OS, domain as Domain, date as Date | sort 0 - "Percent Full"  |</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+        <format type="color" field="Percent Full">
+          <colorPalette type="list">[#53A051,#006D9C,#F8BE34,#AF575A,#DC4E41]</colorPalette>
+          <scale type="threshold">50,70,80,95</scale>
+        </format>
+        <format type="color" field="Percent Free">
+          <colorPalette type="list">[#DC4E41,#AF575A,#F8BE34,#006D9C,#53A051]</colorPalette>
+          <scale type="threshold">5,20,30,50</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

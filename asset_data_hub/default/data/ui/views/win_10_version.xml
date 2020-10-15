@@ -1,0 +1,144 @@
+<dashboard>
+  <label>Win 10 version</label>
+  <row>
+    <panel>
+      <title>LOOK AT THIS ONE!</title>
+      <chart>
+        <title>Windows 10 Version Tending JSP</title>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" Computer_Name!="*army*" | dedup Computer_Name | rex field=Build "^(?&lt;version&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607 in version | replace "10586." with 1511 in version | replace "15063." with 1703 in version |  timechart span=1d count(version) as Total by version | sort -Total</query>
+          <earliest>1507694400</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">-90</option>
+        <option name="charting.axisTitleX.text">Weekly</option>
+        <option name="charting.axisTitleY.text">Count</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Win 10 Count HEN</title>
+      <chart>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" Computer_Name="*army*" | rex field=Build "^(?&lt;version&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607 in version | replace "10586." with 1511 in version | replace "15063." with 1703 in version |  stats count as Total by version | sort -Total</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">column</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>WIN 10 Version HCEN</title>
+      <chart>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" Computer_Name="*army*" | rex field=Build "^(?&lt;version&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607 in version | replace "10586." with 1511 in version | replace "15063." with 1703 in version |  timechart span=7d count(version) as Total by version | sort -Total</query>
+          <earliest>1507694400</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisTitleX.text">Weekly</option>
+        <option name="charting.axisTitleY.text">Count</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>WINdows 10 JSP Count</title>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" Computer_Name!="*army*" 
+| rex field=Build "^(?&lt;version&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607 in version | replace "10586." with 1511 in version | replace "15063." with 1703 in version |  stats count as Total by version | sort -Total</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">Version</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Windows 10 Version Enterprise (Automated by Tanium)</title>
+      <chart>
+        <title>WIN 10 Simple version</title>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" | rex field=Build "^(?&lt;version&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607 in version | replace "10586." with 1511 in version | replace "15063." with 1703 in version |  stats count as Total by version | sort -Total</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Windows 10 Version Enterprise - Weekly Trending (Automated by Tanium)</title>
+      <chart>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" | rex field=Build "^(?&lt;version&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607 in version | replace "10586." with 1511 in version | replace "15063." with 1703 in version |  timechart span=7d count(version) as Total by version | sort -Total</query>
+          <earliest>1507694400</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">-90</option>
+        <option name="charting.axisTitleX.text">Weekly</option>
+        <option name="charting.axisTitleY.text">Count</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.showDataLabels">all</option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>WIN 10 Extended Version</title>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" | rex field=Build "^(?&lt;origin&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607. in origin | replace "10586." with 1511. in origin | replace "15063." with 1703. in origin | eval version=origin.ext | stats count as Total by version | sort - Total</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">50</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Win10 Extended Version By Domain</title>
+      <table>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" | rex field=Build "^(?&lt;origin&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607. in origin | replace "10586." with 1511. in origin | replace "15063." with 1703. in origin | eval version=origin.ext | stats count as Versions by version AD_Domain</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">50</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>WIN 10 Version by VDI</title>
+        <search>
+          <query>index=tanium sourcetype="tanium:connect:syslog" Question_Name="Splunk-Win-10-Vers" | rex field=Build "^(?&lt;origin&gt;\d*\.)" | rex field=Build "^\d*\.(?&lt;ext&gt;\d{1,5})" | replace "14393." with 1607. in origin | replace "10586." with 1511. in origin | replace "15063." with 1703. in origin | eval version=origin.ext | stats count as Total by version Is_VDI | sort -Total</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</dashboard>
